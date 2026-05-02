@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>COMPRESS v4 Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js" crossorigin="anonymous"></script>
+  <style>
+    :root{
+      --paper:#f7f3eb;--rail:#eee7da;--panel:#fffdf8;--panel-2:#f1eadf;--ink:#20201d;--muted:#6f6a61;
+      --faint:#9a9489;--edge:#ded5c7;--edge-2:#cfc4b2;--accent:#c75f3d;--blue:#326f91;--green:#35794f;
+      --amber:#a87321;--red:#aa432f;--sans:'Geist',ui-sans-serif,system-ui,sans-serif;--serif:'Instrument Serif',Georgia,serif;
+      --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;--railw:232px;
+    }
+    *{box-sizing:border-box} html{min-height:100%;scroll-behavior:smooth} body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+    button,input,textarea,select{font:inherit;color:inherit} button{cursor:pointer}
+    .shell{min-height:100vh;display:grid;grid-template-columns:var(--railw) minmax(0,1fr)}
+    .rail{position:sticky;top:0;height:100vh;overflow:auto;background:var(--rail);border-right:1px solid var(--edge);padding:18px 14px;display:flex;flex-direction:column;gap:12px}
+    .brand{display:flex;gap:10px;align-items:center;padding:4px 6px 14px}.mark{width:28px;height:28px;border-radius:7px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:italic 16px var(--serif)}.brand b{font:italic 23px var(--serif);font-weight:400}.brand span{color:var(--muted)}
+    .nav-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 8px 2px;font-weight:700}.nav{display:grid;gap:2px}
+    .nav button{border:0;background:transparent;text-align:left;border-radius:8px;padding:9px 10px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}.nav button:hover,.nav button.active{background:var(--panel);color:var(--ink)}.nav small{font-family:var(--mono);color:var(--faint)}
+    .rail-foot{margin-top:auto;border-top:1px solid var(--edge);padding:12px 8px 4px;color:var(--muted);font-size:11px}.foot-row{display:flex;justify-content:space-between;padding:3px 0}.foot-row b{font-family:var(--mono);color:var(--ink)}
+    .main{min-width:0}.topbar{position:sticky;top:0;z-index:4;height:58px;background:rgba(247,243,235,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--edge);display:flex;align-items:center;gap:12px;padding:0 28px}
+    .crumb{color:var(--muted)}.crumb b{color:var(--ink)}.spacer{flex:1}.chip{border:1px solid var(--edge);background:var(--panel);border-radius:999px;padding:5px 10px;display:inline-flex;align-items:center;gap:8px;font-size:12px}.dot{width:7px;height:7px;border-radius:50%;background:var(--faint)}.chip.on .dot{background:var(--green);box-shadow:0 0 0 4px rgba(53,121,79,.12)}
+    .viewport{max-width:1480px;margin:0 auto;padding:28px 32px 80px}.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px}.kicker{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:700}.title{font:400 40px/1.05 var(--serif);margin:5px 0 0}.title em{color:var(--muted)}.lede{max-width:74ch;color:var(--muted);margin:8px 0 0}
+    .grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g6{grid-template-columns:repeat(6,minmax(0,1fr))}.wide{grid-template-columns:2fr 1fr}.row{margin-bottom:16px}
+    .card{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:16px;min-width:0}.card h3{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.card-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;display:flex;gap:6px;align-items:center}.stat{font:400 34px/1 var(--serif);margin-top:9px}.sub{margin-top:8px;color:var(--muted);font-size:12px}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+    .pill{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--edge);border-radius:999px;padding:3px 8px;font-size:11px;white-space:nowrap}.ok{color:var(--green);background:rgba(53,121,79,.08);border-color:rgba(53,121,79,.18)}.warn{color:var(--amber);background:rgba(168,115,33,.09);border-color:rgba(168,115,33,.18)}.bad{color:var(--red);background:rgba(170,67,47,.08);border-color:rgba(170,67,47,.18)}.info{color:var(--blue);background:rgba(50,111,145,.08);border-color:rgba(50,111,145,.18)}.accent{color:var(--accent);background:rgba(199,95,61,.08);border-color:rgba(199,95,61,.18)}
+    .info-tip{display:inline-grid;place-items:center;width:17px;height:17px;border:1px solid var(--edge-2);border-radius:50%;font:700 11px var(--mono);color:var(--muted);background:var(--panel-2);position:relative}.info-tip:hover::after{content:attr(data-tip);position:absolute;z-index:20;left:50%;top:22px;transform:translateX(-50%);width:min(320px,80vw);background:var(--ink);color:var(--paper);padding:9px 10px;border-radius:7px;font:12px/1.4 var(--sans);box-shadow:0 8px 24px rgba(0,0,0,.18);text-transform:none;letter-spacing:0}
+    .btn{border:1px solid var(--edge);background:var(--panel);border-radius:7px;padding:8px 12px;font-weight:600}.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--paper)}.btn.accent-btn{background:var(--accent);border-color:var(--accent);color:white}.btn:disabled{opacity:.55;cursor:not-allowed}.field{width:100%;border:1px solid var(--edge);background:var(--paper);border-radius:8px;padding:10px 11px}.field:focus{outline:2px solid rgba(199,95,61,.16);border-color:var(--accent)}textarea.field{min-height:160px;resize:vertical;font-family:var(--mono);line-height:1.55}
+    table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--edge);padding:10px;text-align:left;vertical-align:top}th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}td{font-size:12.5px}.table-wrap{overflow:auto}
+    .bar{height:7px;background:var(--panel-2);border-radius:999px;overflow:hidden}.bar span{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .35s}
+    .flow{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;overflow:auto}.node{border:1px solid var(--edge);background:var(--paper);border-radius:8px;padding:12px}.node b{display:block;font:italic 16px var(--serif);font-weight:400;margin:4px 0}.log{background:var(--ink);color:var(--paper);border-radius:8px;padding:12px;max-height:260px;overflow:auto;font:11.5px/1.7 var(--mono)}.log div{display:flex;gap:10px}
+    .split-text{display:grid;grid-template-columns:1fr 1fr;gap:16px}.text-box{background:var(--paper);border:1px solid var(--edge);border-radius:8px;padding:14px;min-height:110px;white-space:pre-wrap}
+    body[data-theme=dark]{--paper:#101113;--rail:#0b0c0e;--panel:#181a1e;--panel-2:#111317;--ink:#edf0f2;--muted:#a2a8ae;--faint:#68707a;--edge:#282c31;--edge-2:#3a4047;--accent:#df7a58;--blue:#74abd3;--green:#67bd84;--amber:#dfb15a;--red:#df735d}
+    @media(max-width:1100px){.shell{grid-template-columns:1fr}.rail{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--edge)}.nav{grid-template-columns:repeat(3,minmax(0,1fr))}.rail-foot{display:none}.g4,.g6,.g3,.wide{grid-template-columns:repeat(2,minmax(0,1fr))}.topbar{top:0}.viewport{padding:22px 18px 64px}}
+    @media(max-width:700px){.head,.split-text{display:block}.g2,.g3,.g4,.g6,.wide{grid-template-columns:1fr}.nav{grid-template-columns:1fr 1fr}.title{font-size:32px}.topbar{padding:0 14px}.flow{grid-template-columns:1fr}.viewport{padding:18px 12px 56px}}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useEffect,useMemo,useState} = React;
+const API = window.location.origin;
+const fmt = {money:n=>"$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}), pct:n=>Number(n||0).toFixed(1)+"%", int:n=>Number(n||0).toLocaleString()};
+function InfoTip({text}){return <span className="info-tip" data-tip={text}>?</span>}
+async function api(path, opts){
+  const res = await fetch(API + path, opts ? {...opts, headers:{"Content-Type":"application/json", ...(opts.headers||{})}} : undefined);
+  if(!res.ok){
+    let detail = await res.text();
+    try{
+      const parsed = JSON.parse(detail);
+      detail = typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed.detail);
+    }catch(_){}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+const modeTip = {
+  full_code_switch:"High-token-tax languages are compressed into concise English, then decompressed back for the user.",
+  native_pruning:"Text stays in the source language while filler and redundant tokens are pruned.",
+  hybrid_span_routing:"Mixed-language and moderate-tax text is routed span by span.",
+  passthrough:"English or already efficient text is preserved with minimal cleanup."
+};
+function Stat({label,value,sub,tip,tone}){return <div className="card"><div className="stat-label">{label}{tip&&<InfoTip text={tip}/>}</div><div className="stat" style={{color:tone?`var(--${tone})`:undefined}}>{value}</div>{sub&&<div className="sub">{sub}</div>}</div>}
+function MiniStat({label,value,tip,tone}){return <div style={{background:"var(--paper)",border:"1px solid var(--edge)",borderRadius:8,padding:14}}><div className="stat-label">{label}{tip&&<InfoTip text={tip}/>}</div><div className="stat" style={{fontSize:28,color:tone?`var(--${tone})`:undefined}}>{value}</div></div>}
+function Header({kicker,title,lede,children}){return <div className="head"><div><div className="kicker">{kicker}</div><h1 className="title" dangerouslySetInnerHTML={{__html:title}} />{lede&&<p className="lede">{lede}</p>}</div>{children}</div>}
+function useV4(live){
+  const [state,setState]=useState({languages:[],metrics:null,engines:[],health:null,capabilities:null,error:null});
+  const load=async()=>{try{const [languages,metrics,engines,health,capabilities]=await Promise.all([api("/v4/languages"),api("/v4/metrics"),api("/v4/engines"),api("/v4/health"),api("/v4/capabilities")]);setState({languages:languages.languages||[],metrics,engines:engines.engines||[],health,capabilities,error:null})}catch(e){setState(s=>({...s,error:e.message}))}};
+  useEffect(()=>{load();},[]);
+  useEffect(()=>{if(!live)return;const id=setInterval(load,2500);return()=>clearInterval(id)},[live]);
+  return {...state, reload:load};
+}
+function statusClass(status){return status==="ready"?"pill ok":status==="degraded"?"pill warn":"pill bad"}
+function Overview({ctx,goto}){
+  const m=ctx.metrics||{}; const recent=m.recent_events||[]; const langs=ctx.languages.slice(0,8);
+  return <div>
+    <Header kicker="COMPRESS v4.0 / Adaptive multilingual cost intelligence" title={"Six engines. <em>Live pipeline.</em>"} lede="Every number on this page is hydrated from the v4 API. Run the Playground to watch metrics, cache, provider state, and recent requests update." />
+    <div className="grid g4 row">
+      <Stat label="Requests" value={fmt.int(m.total_requests)} sub="Total v4 compression calls" tip="Incremented by POST /v4/compress and /v4/round-trip." />
+      <Stat label="Savings" value={fmt.money(m.cumulative_savings_usd)} sub="Cumulative estimated input-cost savings" tone="green" tip="Calculated from original vs compressed token counts and model route." />
+      <Stat label="Cache hit rate" value={(m.engines?.semantic_cache?.hit_rate||0)+"%"} sub={(m.engines?.semantic_cache?.total_lookups||0)+" semantic lookups"} tip="Cross-lingual cache: same meaning in any language can avoid a model call." />
+      <Stat label="Strict status" value={m.status||ctx.health?.status||"loading"} sub={"Provider: "+(m.provider?.compression||"none")} tip="Strict v4 refuses to simulate missing LLM/ML capabilities. Failed means configure the listed provider/model." />
+    </div>
+    <div className="grid wide row">
+      <div className="card"><div className="card-hd"><h3>Language source savings <InfoTip text="Top supported source languages ranked by token tax. Higher tax normally means more compression upside." /></h3><button className="btn" onClick={()=>goto("sources")}>View all 20</button></div>{langs.map(l=><div key={l.code} style={{margin:"10px 0"}}><div style={{display:"flex",justifyContent:"space-between"}}><b>{l.name}</b><span className="mono">{l.token_tax}x tax / {Math.round(l.expected_savings_max*100)}%</span></div><div className="bar"><span style={{width:Math.min(100,l.token_tax/4*100)+"%"}} /></div></div>)}</div>
+      <div className="card"><div className="card-hd"><h3>Engine health <InfoTip text="Per-engine status from /v4/health and live stats from /v4/metrics." /></h3><span className={statusClass(ctx.health?.status)}>{ctx.health?.status||"loading"}</span></div>{ctx.engines.map(e=><div key={e.id} style={{display:"flex",justifyContent:"space-between",gap:10,padding:"8px 0",borderBottom:"1px solid var(--edge)"}}><span>{e.id}. {e.name} <InfoTip text={e.what||e.description}/></span><span className={statusClass(e.status||"ready")}>{e.status||"ready"}</span></div>)}</div>
+    </div>
+    <div className="card"><div className="card-hd"><h3>Recent v4 compressions <InfoTip text="Recent API-backed events. Run Playground or Round-Trip to populate this table." /></h3></div><RecentTable recent={recent}/></div>
+  </div>
+}
+function RecentTable({recent}){
+  if(!recent.length) return <p className="sub">No v4 requests yet. Run a prompt in Playground.</p>;
+  return <div className="table-wrap"><table><thead><tr><th>Request</th><th>Source</th><th>Target</th><th>Mode</th><th>Tokens</th><th>Reduction</th><th>Provider</th><th>Gate</th><th>Applied</th><th>Latency</th></tr></thead><tbody>{recent.map(r=><tr key={r.request_id}><td className="mono">{r.request_id}</td><td>{r.language_name}</td><td>{r.target_language}</td><td><span className="pill accent">{r.mode}</span></td><td className="mono">{r.original_tokens} -> {r.compressed_tokens}</td><td className="mono">{r.token_reduction_pct}%</td><td>{r.provider}</td><td><span className={r.verification==="PASS"?"pill ok":"pill bad"}>{r.verification}</span></td><td><span className={r.compression_applied?"pill ok":"pill warn"}>{r.compression_applied?"yes":"no"}</span></td><td className="mono">{r.latency_ms}ms</td></tr>)}</tbody></table></div>
+}
+function Playground({ctx,reload,setLastCompression,setLastRound,setPage}){
+  const [language,setLanguage]=useState("ta"); const lang=ctx.languages.find(l=>l.code===language)||ctx.languages[0];
+  const [text,setText]=useState(""); const [session,setSession]=useState("demo-session"); const [exchange,setExchange]=useState(15);
+  const [result,setResult]=useState(null); const [round,setRound]=useState(null); const [loading,setLoading]=useState(false); const [rtLoading,setRtLoading]=useState(false); const [error,setError]=useState("");
+  useEffect(()=>{if(lang&&!text)setText(lang.sample_prompt||"")},[lang?.code]);
+  const run=async()=>{setLoading(true);setError("");setRound(null);try{const data=await api("/v4/compress",{method:"POST",body:JSON.stringify({text,language,session_id:session,exchange_number:exchange})});setResult(data);setLastCompression(data);await reload();}catch(e){setError(e.message)}finally{setLoading(false)}};
+  const runRound=async()=>{setRtLoading(true);setError("");try{const data=await api("/v4/round-trip",{method:"POST",body:JSON.stringify({text,language,session_id:session,exchange_number:exchange})});setRound(data);setLastCompression(data.compression);setLastRound(data);await reload();}catch(e){setError(e.message)}finally{setRtLoading(false)}};
+  const comp=result?.compression;
+  return <div>
+    <Header kicker="Playground / custom source prompt" title={"Compress any <em>language prompt.</em>"} lede="Type or paste a user prompt in a supported source language, select the source, and run the v4 pipeline." />
+    {error&&<div className="card row bad">{error}</div>}
+    <div className="grid wide row">
+      <div className="card"><div className="card-hd"><h3>Source prompt <InfoTip text="Free-form source language prompt. v4 detects or uses your selected language and routes it through the correct compression mode." /></h3><span className="pill info">{lang?.name||language}</span></div>
+        <div className="grid g3 row"><select className="field" value={language} onChange={e=>{setLanguage(e.target.value);setText((ctx.languages.find(l=>l.code===e.target.value)||{}).sample_prompt||"")}}>{ctx.languages.map(l=><option key={l.code} value={l.code}>{l.name} ({l.code})</option>)}</select><input className="field" value={session} onChange={e=>setSession(e.target.value)} placeholder="Session id"/><input className="field" type="number" min="1" value={exchange} onChange={e=>setExchange(+e.target.value)} /></div>
+        <textarea className="field" value={text} onChange={e=>setText(e.target.value)} />
+        <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}><button className="btn primary" onClick={run} disabled={loading||!text.trim()}>{loading?"Running...":"Run compression"}</button><button className="btn accent-btn" onClick={runRound} disabled={rtLoading||!text.trim()}>{rtLoading?"Round-tripping...":"Run round-trip"}</button><button className="btn" onClick={()=>setPage("sources")}>20 language sources</button></div>
+      </div>
+      <div className="card"><div className="card-hd"><h3>Language route <InfoTip text={modeTip[lang?.mode]||"Compression mode chosen from language tax."} /></h3></div>{lang&&<><StatInline label="Script" value={lang.script}/><StatInline label="Token tax" value={lang.token_tax+"x"}/><StatInline label="Mode" value={lang.mode_label}/><StatInline label="Expected savings" value={Math.round(lang.expected_savings_min*100)+"-"+Math.round(lang.expected_savings_max*100)+"%"}/><p className="sub">Sample compressed: <span className="mono">{lang.sample_compressed}</span></p></>}</div>
+    </div>
+    {result&&<ResultPanel result={result}/>}
+    {round&&<RoundTripPanel data={round}/>}
+  </div>
+}
+function StatInline({label,value}){return <div style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--edge)",padding:"9px 0"}}><span className="sub" style={{margin:0}}>{label}</span><b>{value}</b></div>}
+function ResultPanel({result}){
+  const c=result.compression, input=result.input, cost=result.cost, e=result.engines;
+  return <div className="card row"><div className="card-hd"><h3>Compression result <InfoTip text="Strict v4 only applies compression when real LLM output is shorter and all verification gates pass. Otherwise it returns original text and explains why." /></h3><span className={c.compression_applied?"pill ok":"pill warn"}>{c.compression_applied?"applied":"not applied"}</span></div>
+    {c.failure_reason&&<div className="card row warn" style={{padding:10}}>Strict-mode note: {c.failure_reason}</div>}
+    <div className="split-text row"><div><div className="stat-label">Original / {input.language_name}</div><div className="text-box">{input.text}</div></div><div><div className="stat-label">Compressed / {c.target_language}</div><div className="text-box">{c.compressed_text}</div></div></div>
+    <div className="grid g4 row"><MiniStat label="Original tokens" value={input.original_tokens}/><MiniStat label="Compressed tokens" value={c.compressed_tokens}/><MiniStat label="Reduction" value={c.token_reduction_pct+"%"} tone="green"/><MiniStat label="Cost saved" value={fmt.money(cost.cost_saved)} /></div>
+    <div className="flow row">{["polycompress_router","semantic_cache","verification","kv_distill","xrag_bridge","model_router"].map((k,i)=><div className="node" key={k}><span className="mono">0{i+1}</span><b>{k.replace(/_/g," ")}</b><span className="sub">{e[k]?.latency_ms??0}ms</span></div>)}</div>
+    <GateTable gates={e.verification?.gates||[]} />
+  </div>
+}
+function GateTable({gates}){return <div className="table-wrap"><table><thead><tr><th>Gate</th><th>Model</th><th>Score</th><th>Threshold</th><th>Status</th><th>Why</th></tr></thead><tbody>{gates.length?gates.map(g=><tr key={g.gate}><td>{g.gate}. {g.name} <InfoTip text="All strict gates must pass and token count must shrink, or v4 returns original text." /></td><td>{g.model}</td><td className="mono">{g.score==null?"skipped":g.score}</td><td className="mono">{g.threshold}</td><td><span className={g.passed?"pill ok":"pill bad"}>{g.skipped?"skipped":g.passed?"pass":"kill"}</span></td><td>{g.reason}</td></tr>):<tr><td colSpan="6" className="sub">No verification gates returned.</td></tr>}</tbody></table></div>}
+function RoundTripPanel({data}){
+  const rt=data.round_trip, dec=data.decompression, comp=data.compression.compression;
+  return <div className="card row"><div className="card-hd"><h3>Round-trip decompression <InfoTip text="Compress to a low-token form, then translate back to the selected source language and report net token savings." /></h3><span className="pill info">{rt.method}</span></div>
+    <div className="split-text row"><div><div className="stat-label">Compressed text</div><div className="text-box">{comp.compressed_text}</div></div><div><div className="stat-label">Reconstructed source text</div><div className="text-box">{dec.decompressed_text}</div></div></div>
+    <div className="grid g4 row"><MiniStat label="Original" value={rt.original_tokens}/><MiniStat label="Compressed" value={rt.compressed_tokens}/><MiniStat label="Decompressed" value={rt.decompressed_tokens}/><MiniStat label="Net reduction" value={rt.net_reduction_pct+"%"} tone={rt.net_reduction_pct>=0?"green":"red"}/></div>
+    {dec.error&&<p className="sub bad">Provider note: {dec.error}</p>}
+    {dec.candidates?.length>0&&<div className="table-wrap"><table><thead><tr><th>Rank</th><th>Candidate</th><th>Tokens</th><th>Score</th></tr></thead><tbody>{dec.candidates.map(c=><tr key={c.rank}><td>{c.rank+1}</td><td>{c.text}</td><td>{c.token_count}</td><td>{c.combined_score}</td></tr>)}</tbody></table></div>}
+  </div>
+}
+function Pipeline({ctx}){
+  const engines=ctx.engines;
+  return <div><Header kicker="Pipeline / six engines" title={"Six engines of <em>verified compression.</em>"} lede="This page is driven by /v4/engines and /v4/metrics." />
+    <div className="grid g6 row">{engines.map(e=><div className="card" key={e.id}><div className="stat-label">Engine {e.id}<InfoTip text={e.what||e.description}/></div><div style={{font:"italic 18px var(--serif)",margin:"8px 0"}}>{e.name}</div><div className="sub">{e.model}</div><div className="pill info" style={{marginTop:10}}>p95 {e.latency_p95_ms}ms</div></div>)}</div>
+    <div className="card"><div className="card-hd"><h3>Engine configuration</h3></div><div className="table-wrap"><table><thead><tr><th>Engine</th><th>Model</th><th>What it does</th><th>p95</th></tr></thead><tbody>{engines.map(e=><tr key={e.id}><td>{e.name}</td><td>{e.model}</td><td>{e.description}</td><td className="mono">{e.latency_p95_ms}ms</td></tr>)}</tbody></table></div></div>
+  </div>
+}
+function Engines({ctx}){
+  const stats=ctx.metrics?.engines||{};
+  return <div><Header kicker="Engines / live detail" title={"Runtime state for each <em>engine.</em>"} lede="Run the Playground to update model routing, cache, request count, and recent traces." />
+    <div className="card row"><div className="card-hd"><h3>Strict ML capabilities <InfoTip text="v4 checks these before running real compression, round-trip, cache, verification, and interview features." /></h3><span className={statusClass(ctx.capabilities?.status)}>{ctx.capabilities?.status||"loading"}</span></div>
+      <div className="table-wrap"><table><thead><tr><th>Capability</th><th>Status</th><th>Reason</th></tr></thead><tbody>{Object.entries(ctx.capabilities?.capabilities||{}).map(([k,v])=><tr key={k}><td>{k.replace(/_/g," ")}</td><td><span className={statusClass(v.status)}>{v.status}</span></td><td>{v.reason}</td></tr>)}</tbody></table></div>
+    </div>
+    <div className="grid g3 row">{Object.entries(stats).map(([k,v])=><div className="card" key={k}><div className="card-hd"><h3>{k.replace(/_/g," ")} <InfoTip text="Live runtime stats from /v4/metrics." /></h3></div>{Object.entries(v||{}).map(([a,b])=><StatInline key={a} label={a.replace(/_/g," ")} value={String(b)}/>)}</div>)}</div>
+    <div className="card"><div className="card-hd"><h3>Live engine trace</h3></div><div className="log">{(ctx.metrics?.recent_events||[]).map(r=><div key={r.request_id}><span>{new Date(r.created_at*1000).toLocaleTimeString()}</span><span>{r.request_id}</span><span>{r.language_name} -> {r.target_language} / {r.token_reduction_pct}% / {r.provider}</span></div>)}</div></div>
+  </div>
+}
+function Sources({ctx,setPage}){
+  return <div><Header kicker="Sources / 20 languages" title={"Source language <em>coverage.</em>"} lede="These are the 20 source languages exposed by COMPRESS v4. Each row includes the selected routing mode and a prompt you can send to Playground." />
+    <div className="card"><div className="table-wrap"><table><thead><tr><th>Code</th><th>Language</th><th>Script</th><th>Tax</th><th>Mode</th><th>Savings</th><th>Sample prompt</th></tr></thead><tbody>{ctx.languages.map(l=><tr key={l.code}><td className="mono">{l.code}</td><td><b>{l.name}</b></td><td>{l.script}</td><td className="mono">{l.token_tax}x</td><td><span className="pill accent">{l.mode_label}</span> <InfoTip text={modeTip[l.mode]}/></td><td>{Math.round(l.expected_savings_min*100)}-{Math.round(l.expected_savings_max*100)}%</td><td>{l.sample_prompt}</td></tr>)}</tbody></table></div></div>
+  </div>
+}
+function RoundTrip({last,lastRound,ctx,setPage}){
+  return <div><Header kicker="Round-trip / decompress" title={"Compression back to <em>source language.</em>"} lede="Use Playground first, then inspect the latest round-trip result here. The module also works directly from the Playground button." />
+    {lastRound?<RoundTripPanel data={lastRound}/>:last?<ResultPanel result={last}/>:<div className="card"><p className="sub">No compression result yet.</p><button className="btn primary" onClick={()=>setPage("playground")}>Open Playground</button></div>}
+  </div>
+}
+function Interview({ctx,reload}){
+  const [role,setRole]=useState("Backend Engineer");
+  const [seniority,setSeniority]=useState("Senior");
+  const [topic,setTopic]=useState("distributed systems, APIs, production debugging, and AI reliability");
+  const [language,setLanguage]=useState("en");
+  const [turnCount,setTurnCount]=useState(12);
+  const [result,setResult]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const run=async()=>{
+    setLoading(true);setError("");setResult(null);
+    try{
+      const data=await api("/v4/interview/run",{method:"POST",body:JSON.stringify({role,seniority,topic,language,duration_minutes:15,turn_count:turnCount})});
+      setResult(data); await reload();
+    }catch(e){setError(e.message)}finally{setLoading(false)}
+  };
+  const summary=result?.summary;
+  return <div><Header kicker="AI Interview / real 15-minute scenario" title={"LLM interviewer + candidate, <em>compressed live.</em>"} lede="Both sides are generated by the configured LLM provider. Every turn is passed through strict v4 compression so the dashboard can show token savings without fake transcript data." />
+    {error&&<div className="card row bad">{error}</div>}
+    <div className="grid wide row">
+      <div className="card"><div className="card-hd"><h3>Scenario <InfoTip text="Accelerated mode represents a 15-minute interview in a few generated turns for dashboard demonstration." /></h3><span className={statusClass(ctx.capabilities?.capabilities?.interview_provider?.status)}>{ctx.capabilities?.capabilities?.interview_provider?.status||"loading"}</span></div>
+        <div className="grid g2 row"><input className="field" value={role} onChange={e=>setRole(e.target.value)} placeholder="Role"/><input className="field" value={seniority} onChange={e=>setSeniority(e.target.value)} placeholder="Seniority"/></div>
+        <div className="grid g3 row"><select className="field" value={language} onChange={e=>setLanguage(e.target.value)}>{ctx.languages.map(l=><option key={l.code} value={l.code}>{l.name} ({l.code})</option>)}</select><input className="field" type="number" min="1" max="30" value={turnCount} onChange={e=>setTurnCount(+e.target.value)} /><button className="btn primary" onClick={run} disabled={loading}>{loading?"Running real LLM interview...":"Run 15-min interview"}</button></div>
+        <textarea className="field" value={topic} onChange={e=>setTopic(e.target.value)} />
+      </div>
+      <div className="card"><div className="card-hd"><h3>Savings summary <InfoTip text="Compares raw transcript context cost against strict v4 compressed context cost across all generated turns." /></h3></div>
+        {summary?<><MiniStat label="Original context tokens" value={summary.total_original_tokens}/><br/><MiniStat label="Compressed context tokens" value={summary.total_compressed_tokens}/><br/><MiniStat label="Net savings" value={summary.net_savings_percent+"%"} tone="green"/><br/><MiniStat label="Cost saved" value={fmt.money(summary.estimated_cost_saved)}/></>:<p className="sub">Run the interview to see cumulative savings.</p>}
+      </div>
+    </div>
+    {result&&<div className="card row"><div className="card-hd"><h3>Interview transcript <InfoTip text="Every interviewer question and candidate answer came from the configured LLM provider, then v4 compressed the accumulated context." /></h3><span className="pill info">{result.provider}</span></div>
+      <div className="table-wrap"><table><thead><tr><th>Min</th><th>Interviewer</th><th>Candidate</th><th>Compressed memory</th><th>Tokens</th><th>Gate</th></tr></thead><tbody>{result.turns.map(t=><tr key={t.turn}><td className="mono">{t.minute_mark}</td><td>{t.interviewer_message}</td><td>{t.candidate_message}</td><td>{t.compressed_context}</td><td className="mono">{t.tokens.original_context_tokens} -> {t.tokens.compressed_context_tokens}<br/>{t.tokens.savings_percent}%</td><td><span className={t.verification==="PASS"?"pill ok":"pill bad"}>{t.verification}</span></td></tr>)}</tbody></table></div>
+    </div>}
+  </div>
+}
+const PAGES=[["overview","Overview"],["playground","Playground"],["pipeline","Pipeline"],["engines","Algorithms"],["sources","Sources"],["roundtrip","Round-Trip"],["interview","AI Interview"]];
+function App(){
+  const [page,setPage]=useState("overview"); const [live,setLive]=useState(true); const [theme,setTheme]=useState("light"); const [lastCompression,setLastCompression]=useState(null); const [lastRound,setLastRound]=useState(null);
+  const ctx=useV4(live); useEffect(()=>document.body.setAttribute("data-theme",theme),[theme]);
+  const common={ctx,reload:ctx.reload,setLastCompression,setLastRound,setPage};
+  const View={overview:<Overview ctx={ctx} goto={setPage}/>,playground:<Playground {...common}/>,pipeline:<Pipeline ctx={ctx}/>,engines:<Engines ctx={ctx}/>,sources:<Sources ctx={ctx} setPage={setPage}/>,roundtrip:<RoundTrip last={lastCompression} lastRound={lastRound} ctx={ctx} setPage={setPage}/>,interview:<Interview ctx={ctx} reload={ctx.reload}/>}[page];
+  return <div className="shell"><aside className="rail"><div className="brand"><div className="mark">C</div><div><b>COMPRESS</b><span> v4</span></div></div><div className="nav-label">Console</div><div className="nav">{PAGES.map(([id,name],i)=><button key={id} className={page===id?"active":""} onClick={()=>setPage(id)}>{name}<small>{String(i).padStart(2,"0")}</small></button>)}</div><div className="rail-foot"><div className="foot-row"><span>API</span><b>v4.0.0</b></div><div className="foot-row"><span>Languages</span><b>{ctx.languages.length||20}</b></div><div className="foot-row"><span>Status</span><b>{ctx.health?.status||"loading"}</b></div><div style={{marginTop:10}}><a href="/" style={{color:"inherit"}}>v3.0 legacy module</a></div></div></aside><main className="main"><header className="topbar"><div className="crumb">COMPRESS v4 / <b>{PAGES.find(p=>p[0]===page)?.[1]}</b></div><div className="spacer" /><button className={"chip "+(live?"on":"")} onClick={()=>setLive(v=>!v)}><span className="dot"></span>{live?"Live":"Paused"}</button><button className="btn" onClick={()=>setTheme(t=>t==="light"?"dark":"light")}>{theme==="light"?"Dark":"Light"}</button><button className="btn primary" onClick={()=>setPage("playground")}>Run pipeline</button></header><div className="viewport">{ctx.error&&<div className="card row bad">API error: {ctx.error}</div>}{View}</div></main></div>
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

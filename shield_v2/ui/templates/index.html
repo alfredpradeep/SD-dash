@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SHIELD v2 — Cross-Lingual Guardrail Auditor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+<link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+          <path d="M16 2 L28 7 V15 C28 22 22.5 27.5 16 30 C9.5 27.5 4 22 4 15 V7 Z"
+                fill="url(#g1)" stroke="#C96442" stroke-width="1.2"/>
+          <path d="M11 16 L15 20 L22 12" fill="none" stroke="#F0EEE6"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#C96442"/>
+              <stop offset="1" stop-color="#a14a2e"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>SHIELD <span class="v">v2</span></h1>
+        <p class="tag">Cross-Lingual Guardrail Auditor · <span class="codename" id="codename">…</span></p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active" data-view="overview">Overview</button>
+      <button class="nav-btn" data-view="audit">Audit</button>
+      <button class="nav-btn" data-view="guard">Guard Live</button>
+      <button class="nav-btn" data-view="calibration">Calibration</button>
+    </nav>
+
+    <div class="topbar-right">
+      <label class="sim-toggle" title="Toggle simulator-only mode (no real LLM calls)">
+        <input type="checkbox" id="sim-toggle" />
+        <span class="slider"></span>
+        <span class="sim-label">Simulator</span>
+        <span class="info-icon" data-info="simulator" tabindex="0" aria-label="About simulator mode">i</span>
+      </label>
+      <div class="status-pill" id="status-pill">
+        <span class="dot"></span>
+        <span class="txt">connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section class="view view-overview active" data-view="overview">
+    <div class="view-head">
+      <div>
+        <h2>Overview</h2>
+        <p class="subtle">Real-time posture across all four pillars. Auto-refreshes every 3s.</p>
+      </div>
+      <div class="view-head-actions">
+        <button class="btn btn-ghost" id="refresh-overview">Refresh</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-accent">
+        <div class="kpi-label">
+          Audits (last hour)
+          <span class="info-icon" data-info="audit" tabindex="0">i</span>
+        </div>
+        <div class="kpi-value" id="kpi-audits">–</div>
+        <div class="kpi-trend"><canvas id="spark-audits" height="32"></canvas></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">
+          Guard turns (in/out)
+          <span class="info-icon" data-info="guard" tabindex="0">i</span>
+        </div>
+        <div class="kpi-value" id="kpi-guards">–</div>
+        <div class="kpi-trend"><canvas id="spark-guards" height="32"></canvas></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg bypass rate</div>
+        <div class="kpi-value" id="kpi-bypass">–</div>
+        <div class="kpi-sub">Target: &lt; 5%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">
+          Active sessions
+          <span class="info-icon" data-info="bidirectional" tabindex="0">i</span>
+        </div>
+        <div class="kpi-value" id="kpi-sessions">–</div>
+        <div class="kpi-sub"><span id="kpi-hot">0</span> hot</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">
+          Calibration ECE
+          <span class="info-icon" data-info="calibration" tabindex="0">i</span>
+        </div>
+        <div class="kpi-value" id="kpi-ece">–</div>
+        <div class="kpi-sub">post-Platt</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Brain budget</div>
+        <div class="kpi-value" id="kpi-budget">–</div>
+        <div class="kpi-sub" id="kpi-budget-sub">— calls today</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head">
+          <h3>Risk stream (last hour)</h3>
+          <div class="card-head-actions">
+            <select id="stream-kind" class="select">
+              <option value="all">All events</option>
+              <option value="guard_inbound">Inbound</option>
+              <option value="guard_outbound">Outbound</option>
+              <option value="audit">Audit</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-stream"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Provider call mix</h3>
+          <span class="info-icon" data-info="pillar1" tabindex="0">i</span>
+        </div>
+        <div class="chart-wrap chart-wrap-short"><canvas id="chart-providers"></canvas></div>
+        <div class="legend-row" id="legend-providers"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>Active sessions — bidirectional trajectory</h3>
+        <span class="info-icon" data-info="bidirectional" tabindex="0">i</span>
+      </div>
+      <div class="session-grid" id="session-grid">
+        <div class="empty-state">No sessions yet. Run a turn from the Guard Live tab.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AUDIT ============ -->
+  <section class="view view-audit" data-view="audit">
+    <div class="view-head">
+      <div>
+        <h2>Audit analytics</h2>
+        <p class="subtle">Streaming batch red-teaming across languages × categories with live Safety Gap Matrix and monetary exposure.</p>
+      </div>
+    </div>
+
+    <div class="card audit-setup">
+      <div class="card-head">
+        <h3>Run new audit
+          <span class="info-icon" data-info="audit" tabindex="0">i</span>
+        </h3>
+      </div>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Languages</label>
+          <div class="chip-group" id="lang-chips">
+            <button class="chip active" data-val="en">English</button>
+            <button class="chip active" data-val="hi">Hindi</button>
+            <button class="chip active" data-val="ta">Tamil</button>
+            <button class="chip" data-val="ar">Arabic</button>
+            <button class="chip" data-val="zh">Chinese</button>
+            <button class="chip" data-val="es">Spanish</button>
+            <button class="chip" data-val="fr">French</button>
+            <button class="chip" data-val="ja">Japanese</button>
+            <button class="chip" data-val="ko">Korean</button>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Categories</label>
+          <div class="chip-group" id="cat-chips">
+            <button class="chip active" data-val="hiring">Hiring</button>
+            <button class="chip active" data-val="financial">Financial</button>
+            <button class="chip active" data-val="medical">Medical</button>
+            <button class="chip" data-val="legal">Legal</button>
+            <button class="chip" data-val="violence">Violence</button>
+            <button class="chip" data-val="pii">PII</button>
+            <button class="chip" data-val="self_harm">Self-harm</button>
+          </div>
+        </div>
+        <div class="form-field form-field-row">
+          <label>Probes / cell</label>
+          <input type="number" id="audit-probes" value="4" min="1" max="12" />
+          <button id="audit-run" class="btn btn-primary">Run streaming audit</button>
+        </div>
+      </div>
+      <div class="progress-wrap" id="audit-progress-wrap" hidden>
+        <div class="progress-bar"><div class="progress-fill" id="audit-progress"></div></div>
+        <div class="progress-meta" id="audit-progress-meta"></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head">
+          <h3>Safety Gap Matrix</h3>
+          <span class="info-icon" data-info="pillar4" tabindex="0">i</span>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-heatmap"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Monetary exposure by category</h3>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-exposure"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>Probe log <span class="subtle-inline" id="probe-count">0 probes</span></h3>
+        <div class="card-head-actions filters">
+          <input type="text" class="input" id="probe-search" placeholder="Search prompt / category…" />
+          <select class="select" id="probe-verdict-filter">
+            <option value="">All verdicts</option>
+            <option value="safe">Safe</option>
+            <option value="harmful">Harmful</option>
+            <option value="refused">Refused</option>
+          </select>
+          <select class="select" id="probe-lang-filter"><option value="">All languages</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="probe-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Language</th>
+              <th>Category</th>
+              <th>Verdict</th>
+              <th>Confidence</th>
+              <th>Exposure</th>
+              <th>Prompt</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody id="probe-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="compliance-card" hidden>
+      <div class="card-head">
+        <h3>Compliance attestations</h3>
+      </div>
+      <div class="compliance-grid" id="compliance-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ GUARD LIVE ============ -->
+  <section class="view view-guard" data-view="guard">
+    <div class="view-head">
+      <div>
+        <h2>Guard live console</h2>
+        <p class="subtle">Full bidirectional inline guardrail. Streams each pillar as it runs.</p>
+      </div>
+    </div>
+
+    <div class="guard-layout">
+      <div class="card">
+        <div class="card-head">
+          <h3>Inbound + Outbound turn</h3>
+          <span class="info-icon" data-info="guard" tabindex="0">i</span>
+        </div>
+        <div class="form-grid guard-form">
+          <div class="form-field">
+            <label>User message (inbound)</label>
+            <textarea id="guard-user" class="textarea" rows="6" placeholder="Paste a long user prompt…"></textarea>
+          </div>
+          <div class="form-field">
+            <label>AI response (outbound)</label>
+            <textarea id="guard-ai" class="textarea" rows="6" placeholder="Paste the model's reply…"></textarea>
+          </div>
+          <div class="form-field form-field-row">
+            <label>Language</label>
+            <select id="guard-lang" class="select">
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="ta">Tamil</option>
+              <option value="ar">Arabic</option>
+              <option value="zh">Chinese</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+            </select>
+            <label>Session ID</label>
+            <input type="text" id="guard-session" class="input" value="live-demo" />
+            <button class="btn btn-secondary" id="guard-sample">Load sample</button>
+            <button class="btn btn-primary" id="guard-run">Analyze turn</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Pillar stream</h3>
+        </div>
+        <div class="pillar-pipeline" id="pillar-pipeline">
+          <div class="pillar-node" data-pillar="reflex">
+            <div class="pn-badge">P2</div>
+            <div class="pn-label">Reflex</div>
+            <div class="pn-status">idle</div>
+          </div>
+          <div class="pillar-arrow"></div>
+          <div class="pillar-node" data-pillar="distilled">
+            <div class="pn-badge">P3</div>
+            <div class="pn-label">Distilled Judge</div>
+            <div class="pn-status">idle</div>
+          </div>
+          <div class="pillar-arrow"></div>
+          <div class="pillar-node" data-pillar="manifold">
+            <div class="pn-badge">P4</div>
+            <div class="pn-label">Manifold</div>
+            <div class="pn-status">idle</div>
+          </div>
+          <div class="pillar-arrow"></div>
+          <div class="pillar-node" data-pillar="brain">
+            <div class="pn-badge">P1</div>
+            <div class="pn-label">Brain</div>
+            <div class="pn-status">idle</div>
+          </div>
+          <div class="pillar-arrow"></div>
+          <div class="pillar-node" data-pillar="final">
+            <div class="pn-badge">Σ</div>
+            <div class="pn-label">Decision</div>
+            <div class="pn-status">idle</div>
+          </div>
+        </div>
+        <div class="pillar-cards" id="pillar-cards">
+          <div class="empty-state">Run a turn to see per-pillar breakdown…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Risk scoreboard</h3>
+        </div>
+        <div class="risk-scoreboard">
+          <div class="risk-dial"><div class="risk-dial-label">Inbound</div><div class="risk-dial-value" id="risk-inbound">–</div></div>
+          <div class="risk-dial"><div class="risk-dial-label">Outbound</div><div class="risk-dial-value" id="risk-outbound">–</div></div>
+          <div class="risk-dial"><div class="risk-dial-label">Cross-channel</div><div class="risk-dial-value" id="risk-cross">–</div></div>
+          <div class="risk-dial"><div class="risk-dial-label">Trajectory</div><div class="risk-dial-value" id="risk-traj">–</div></div>
+          <div class="risk-decision" id="risk-decision">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALIBRATION ============ -->
+  <section class="view view-calibration" data-view="calibration">
+    <div class="view-head">
+      <div>
+        <h2>Model calibration &amp; algorithms</h2>
+        <p class="subtle">Distilled judge metrics, manifold projections, and the antigenic drift attack graph.</p>
+      </div>
+      <div class="view-head-actions">
+        <input type="number" id="retrain-n" class="input small" value="40" min="10" max="200" />
+        <button class="btn btn-secondary" id="retrain-btn">Re-train + re-calibrate</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid kpi-grid-wide">
+      <div class="kpi-card">
+        <div class="kpi-label">Accuracy</div>
+        <div class="kpi-value" id="cal-acc">–</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">ECE (calibrated)</div>
+        <div class="kpi-value" id="cal-ece-cal">–</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">ECE (uncalibrated)</div>
+        <div class="kpi-value" id="cal-ece-uncal">–</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Macro AUC (OvR)</div>
+        <div class="kpi-value" id="cal-auc">–</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head">
+          <h3>Reliability diagram</h3>
+          <span class="info-icon" data-info="calibration" tabindex="0">i</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-reliability"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Confusion matrix</h3>
+          <span class="info-icon" data-info="pillar3" tabindex="0">i</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-confusion"></canvas></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head">
+          <h3>Manifold alignment per language</h3>
+          <span class="info-icon" data-info="pillar4" tabindex="0">i</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-manifold"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Antigenic drift trajectory
+            <span class="info-icon" data-info="antigenic" tabindex="0">i</span>
+          </h3>
+          <div class="card-head-actions">
+            <select id="antigenic-lang" class="select">
+              <option value="ta">Tamil</option>
+              <option value="hi">Hindi</option>
+              <option value="ar">Arabic</option>
+              <option value="zh">Chinese</option>
+              <option value="ja">Japanese</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="ko">Korean</option>
+            </select>
+            <button class="btn btn-ghost btn-small" id="antigenic-refresh">Run drift</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-antigenic"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>Per-class precision / recall / F1</h3>
+      </div>
+      <div class="table-wrap">
+        <table class="probe-table">
+          <thead>
+            <tr><th>Class</th><th>Support</th><th>TP</th><th>FP</th><th>FN</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+          </thead>
+          <tbody id="cal-prf-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ INFO TOOLTIP ============ -->
+<div class="info-popover" id="info-popover" hidden>
+  <div class="info-popover-head">
+    <h4 id="info-title"></h4>
+    <button class="icon-btn" id="info-close" aria-label="Close">×</button>
+  </div>
+  <div class="info-popover-body">
+    <p><strong>What it does:</strong> <span id="info-what"></span></p>
+    <p><strong>Why it matters:</strong> <span id="info-why"></span></p>
+    <p><strong>Complexity:</strong> <span id="info-complexity"></span></p>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

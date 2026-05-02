@@ -1,0 +1,96 @@
+{
+  "english_simple": {
+    "text": "The machine learning model demonstrated exceptional performance in natural language processing tasks, achieving state-of-the-art results across multiple benchmark datasets.",
+    "language": "en",
+    "target_tokenizer": "gpt-4o"
+  },
+  "english_complex": {
+    "text": "Tokenization-aware semantic compression leverages language-independent graph representations to discover minimum-token surface realizations that preserve cross-lingual meaning equivalence while reducing API token consumption by measurable margins across heterogeneous model architectures.",
+    "language": "en",
+    "target_tokenizer": "gpt-4o"
+  },
+  "tamil": {
+    "text": "இயந்திர கற்றல் மாதிரி இயற்கை மொழி செயலாக்க பணிகளில் சிறப்பான செயல்திறனைக் காட்டியது, பல அளவுகோல் தரவுத்தொகுப்புகளில் அதிநவீன முடிவுகளை அடைந்தது.",
+    "language": "ta",
+    "target_tokenizer": "gpt-4o"
+  },
+  "hindi": {
+    "text": "मशीन लर्निंग मॉडल ने प्राकृतिक भाषा प्रसंस्करण कार्यों में उत्कृष्ट प्रदर्शन दिखाया, कई बेंचमार्क डेटासेट में अत्याधुनिक परिणाम प्राप्त किए।",
+    "language": "hi",
+    "target_tokenizer": "gpt-4o"
+  },
+  "arabic": {
+    "text": "أظهر نموذج التعلم الآلي أداءً استثنائياً في مهام معالجة اللغة الطبيعية، محققاً نتائج متقدمة عبر مجموعات بيانات مرجعية متعددة.",
+    "language": "ar",
+    "target_tokenizer": "gpt-4o"
+  },
+  "japanese": {
+    "text": "機械学習モデルは自然言語処理タスクにおいて卓越した性能を示し、複数のベンチマークデータセットにおいて最先端の結果を達成しました。",
+    "language": "ja",
+    "target_tokenizer": "gpt-4o"
+  },
+  "chinese": {
+    "text": "机器学习模型在自然语言处理任务中展示了卓越的性能，在多个基准数据集上取得了最先进的结果。",
+    "language": "zh",
+    "target_tokenizer": "gpt-4o"
+  },
+  "korean": {
+    "text": "머신러닝 모델은 자연어 처리 작업에서 뛰어난 성능을 보여주었으며, 여러 벤치마크 데이터셋에서 최첨단 결과를 달성했습니다.",
+    "language": "ko",
+    "target_tokenizer": "gpt-4o"
+  },
+  "multilingual_batch": [
+    {
+      "text": "The quick brown fox jumps over the lazy dog near the riverbank.",
+      "language": "en",
+      "tokenizer": "gpt-4o"
+    },
+    {
+      "text": "வேகமான பழுப்பு நரி சோம்பேறி நாயின் மீது ஆற்றங்கரையில் குதிக்கிறது.",
+      "language": "ta",
+      "tokenizer": "gpt-4o"
+    },
+    {
+      "text": "Das schnelle braune Füchslein springt über den faulen Hund am Flussufer.",
+      "language": "de",
+      "tokenizer": "claude-3-5-sonnet"
+    }
+  ],
+  "edge_case_whitespace": {
+    "text": "   ",
+    "language": "en",
+    "target_tokenizer": "gpt-4o"
+  },
+  "edge_case_single_word": {
+    "text": "Hello",
+    "language": "en",
+    "target_tokenizer": "gpt-4o"
+  },
+  "edge_case_unsupported_lang": {
+    "text": "This is a test in an unsupported language.",
+    "language": "xx",
+    "target_tokenizer": "gpt-4o"
+  },
+  "edge_case_unsupported_tokenizer": {
+    "text": "This is a test with an unsupported tokenizer.",
+    "language": "en",
+    "target_tokenizer": "nonexistent-model"
+  },
+  "tokenizer_targets": {
+    "claude": {
+      "text": "Semantic compression reduces token costs by finding equivalent shorter representations.",
+      "language": "en",
+      "target_tokenizer": "claude-3-5-sonnet"
+    },
+    "llama": {
+      "text": "Semantic compression reduces token costs by finding equivalent shorter representations.",
+      "language": "en",
+      "target_tokenizer": "llama-3-8b"
+    },
+    "mistral": {
+      "text": "Semantic compression reduces token costs by finding equivalent shorter representations.",
+      "language": "en",
+      "target_tokenizer": "mistral-7b"
+    }
+  }
+}

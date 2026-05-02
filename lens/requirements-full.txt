@@ -1,0 +1,16 @@
+# LENS — Full production dependencies (includes ML models)
+# These add ~2GB of downloads but enable all subsystems at full fidelity.
+# Install: python3 -m pip install -r requirements-full.txt
+
+-r requirements.txt
+
+# ── Semantic Entropy (Gap 2) — multilingual sentence embeddings ──
+sentence-transformers>=3.0.0
+
+# ── LM Surprisal (Gap 1) — actual log-probabilities via distilgpt2 ──
+torch>=2.3.0
+transformers>=4.41.0
+
+# ── Analytics ──
+pandas>=2.2.0
+huggingface-hub>=0.23.0

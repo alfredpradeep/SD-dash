@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compress"
+version = "2.1.4"
+description = "Semantic Compression Lattice — Token-cost optimization engine"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Alfred Pradeep", email = "apradeep@eightfold.ai"},
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.setuptools.packages.find]
+include = ["compress*"]

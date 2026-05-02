@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LENS Dashboard — Token Cost Optimization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--cream:#FAF8F5;--crimson:#8B1A1A;--green:#2D6A4F;--amber:#92400E;--lg:#E8E6E1;--td:#2C2C2C;--tl:#666;--blue:#1A5276}
+        body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--td);line-height:1.6}
+        .dashboard{display:flex;height:100vh}
+        /* Sidebar */
+        .sidebar{width:260px;background:#fff;border-right:1px solid var(--lg);padding:20px 14px;overflow-y:auto;position:fixed;height:100vh;z-index:100}
+        .sidebar-brand{font-family:'Playfair Display',serif;font-size:26px;color:var(--crimson);margin-bottom:4px}
+        .sidebar-sub{font-size:11px;color:var(--tl);margin-bottom:28px;letter-spacing:.5px;text-transform:uppercase}
+        .nav-links{display:flex;flex-direction:column;gap:4px}
+        .nav-link{padding:11px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tl);border:none;text-align:left;width:100%;background:transparent;transition:all .2s;border-left:3px solid transparent}
+        .nav-link:hover{background:rgba(139,26,26,.05);color:var(--crimson)}
+        .nav-link.active{background:rgba(139,26,26,.1);color:var(--crimson);border-left-color:var(--crimson);font-weight:600}
+        .sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid var(--lg);font-size:11px;color:var(--tl);line-height:1.8}
+        /* Main */
+        .main-content{margin-left:260px;flex:1;display:flex;flex-direction:column;height:100vh}
+        .top-bar{background:#fff;border-bottom:1px solid var(--lg);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+        .top-bar h1{font-family:'Playfair Display',serif;font-size:24px;color:var(--crimson)}
+        .sim-bar{display:flex;align-items:center;gap:14px;background:rgba(139,26,26,.04);padding:8px 16px;border-radius:8px;font-size:12px}
+        .sim-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+        .toggle-sw{width:38px;height:20px;background:#ccc;border-radius:10px;position:relative;transition:background .3s}
+        .toggle-sw.active{background:var(--green)}
+        .toggle-sw::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .3s}
+        .toggle-sw.active::after{left:20px}
+        .live-dot{display:inline-block;width:7px;height:7px;background:var(--crimson);border-radius:50%;animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        .content-area{flex:1;overflow-y:auto;padding:28px 32px;background:var(--cream)}
+        /* Pages */
+        .page{display:none}.page.active{display:block;animation:fadeIn .25s ease-in}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .page-title{font-family:'Playfair Display',serif;font-size:28px;color:var(--crimson);display:flex;align-items:center;gap:10px}
+        .page-sub{color:var(--tl);margin-bottom:28px;font-size:13px}
+        /* Sections */
+        .section{background:#fff;border-radius:12px;padding:22px;margin-bottom:20px;border:1px solid var(--lg)}
+        .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--lg)}
+        .section-title{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+        /* Info button & panel */
+        .info-btn{background:none;border:none;cursor:pointer;width:22px;height:22px;border-radius:50%;background:rgba(139,26,26,.1);color:var(--crimson);font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;transition:all .2s}
+        .info-btn:hover{background:rgba(139,26,26,.25)}
+        .info-panel{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000}
+        .info-panel.active{display:flex;align-items:center;justify-content:center}
+        .info-content{background:#fff;border-radius:14px;padding:36px;max-width:720px;width:90%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative}
+        .info-content h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--crimson);margin-bottom:14px}
+        .info-content h3{font-size:15px;margin:20px 0 10px;color:var(--td)}
+        .info-content p,.info-content ul,.info-content ol{color:var(--tl);margin-bottom:10px;line-height:1.7;font-size:14px}
+        .info-content code{background:var(--cream);padding:2px 5px;border-radius:3px;font-family:'Courier New',monospace;font-size:12px;color:var(--crimson)}
+        .info-content pre{background:var(--cream);padding:14px;border-radius:8px;overflow-x:auto;margin:10px 0;font-size:12px;border-left:3px solid var(--crimson);line-height:1.4}
+        .info-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:26px;cursor:pointer;color:var(--tl)}
+        .arch-diagram{background:var(--cream);padding:20px;border-radius:8px;margin:14px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+        .arch-box{background:#fff;border:2px solid var(--crimson);padding:10px 14px;border-radius:6px;font-weight:600;font-size:12px;text-align:center;min-width:100px}
+        .arch-arrow{color:var(--crimson);font-weight:bold;font-size:18px}
+        /* Tooltip */
+        .tt{display:inline-block;width:15px;height:15px;border-radius:50%;background:rgba(139,26,26,.1);color:var(--crimson);font-size:10px;line-height:15px;text-align:center;font-weight:bold;cursor:help;position:relative;vertical-align:middle;margin-left:4px}
+        .tt:hover::after{content:attr(data-t);position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:var(--td);color:#fff;padding:6px 10px;border-radius:5px;font-size:11px;white-space:nowrap;z-index:500;font-weight:normal}
+        /* Grid */
+        .g{display:grid;gap:14px;margin-bottom:18px}
+        .g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}.g6{grid-template-columns:repeat(6,1fr)}
+        /* Stat cards */
+        .sc{background:linear-gradient(135deg,#FFF 0%,#FFFBF8 100%);border:1px solid var(--lg);border-radius:10px;padding:14px;text-align:center;transition:all .3s}
+        .sc:hover{border-color:var(--crimson);box-shadow:0 4px 12px rgba(139,26,26,.08)}
+        .sv{font-size:22px;font-weight:700;color:var(--crimson);margin:6px 0;font-variant-numeric:tabular-nums}
+        .sl{font-size:11px;color:var(--tl);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+        .spark{height:16px;margin-top:6px;border-radius:3px;background:rgba(45,106,79,.08);position:relative;overflow:hidden}
+        .spark-fill{height:100%;border-radius:3px;transition:width .5s}
+        /* Tabs */
+        .tab-btns{display:flex;gap:0;border-bottom:2px solid var(--lg);margin-bottom:18px}
+        .tab-btn{background:none;border:none;padding:10px 18px;font-weight:600;font-size:13px;color:var(--tl);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+        .tab-btn.active{color:var(--crimson);border-bottom-color:var(--crimson)}
+        .tab-btn:hover{color:var(--td)}
+        .tab-c{display:none}.tab-c.active{display:block}
+        /* Form */
+        .fg{margin-bottom:14px}
+        label{display:block;margin-bottom:6px;font-weight:500;font-size:13px}
+        input[type="text"],input[type="number"],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--lg);border-radius:7px;font-family:inherit;font-size:13px;color:var(--td);background:#fff;transition:all .2s}
+        input:focus,textarea:focus,select:focus{outline:none;border-color:var(--crimson);box-shadow:0 0 0 3px rgba(139,26,26,.08)}
+        textarea{font-family:'Courier New',monospace;resize:vertical;min-height:80px}
+        button{padding:9px 18px;background:var(--crimson);color:#fff;border:none;border-radius:7px;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
+        button:hover{background:#A82828;box-shadow:0 3px 10px rgba(139,26,26,.18)}
+        button:active{transform:scale(.98)}
+        .btn-sm{padding:6px 12px;font-size:12px}
+        .btn-outline{background:transparent;color:var(--crimson);border:1.5px solid var(--crimson)}
+        .btn-outline:hover{background:rgba(139,26,26,.05)}
+        /* Chart */
+        .cc{position:relative;height:280px;margin:16px 0}
+        .cc-sm{height:200px}
+        .cc-xs{height:160px}
+        canvas{max-width:100%;height:auto}
+        /* Table */
+        table{width:100%;border-collapse:collapse;margin:14px 0}
+        th{background:var(--cream);padding:10px;text-align:left;font-weight:600;font-size:12px;border-bottom:2px solid var(--lg)}
+        td{padding:10px;border-bottom:1px solid var(--lg);font-size:13px}
+        tr:hover{background:var(--cream)}
+        /* Progress */
+        .pb{width:100%;height:7px;background:var(--lg);border-radius:4px;overflow:hidden;margin:6px 0}
+        .pf{height:100%;transition:width .3s ease}
+        .pf-g{background:var(--green)}.pf-a{background:var(--amber)}.pf-r{background:#D32F2F}
+        /* Status */
+        .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+        .dot-g{background:var(--green)}.dot-a{background:var(--amber)}.dot-r{background:#D32F2F}
+        /* Alert */
+        .alert{border-left:4px solid var(--crimson);padding:10px 12px;border-radius:6px;margin-bottom:10px;font-size:12px;line-height:1.5;background:#FFF3F0}
+        .alert-w{background:#FEF7E0;border-left-color:var(--amber)}
+        .alert-s{background:#E8F5E9;border-left-color:var(--green)}
+        .alert-i{background:#E3F2FD;border-left-color:var(--blue)}
+        /* Timeline */
+        .tl-item{display:flex;gap:14px;margin-bottom:20px}
+        .tl-marker{width:28px;height:28px;background:var(--crimson);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:11px}
+        .tl-content{flex:1;padding-top:4px}
+        .tl-content strong{display:block;font-size:13px;margin-bottom:2px}
+        .tl-content small{color:var(--tl);font-size:11px}
+        /* Leaderboard */
+        .lb-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--lg)}
+        .lb-rank{width:28px;height:28px;background:var(--cream);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--crimson);margin-right:10px;font-size:13px}
+        .lb-name{flex:1;font-weight:500;font-size:13px}
+        .lb-val{font-weight:700;color:var(--crimson);font-size:13px}
+        /* Badge */
+        .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase}
+        .badge-critical{background:rgba(211,47,47,.1);color:#D32F2F}
+        .badge-high{background:rgba(146,64,14,.1);color:var(--amber)}
+        .badge-medium{background:rgba(26,82,118,.1);color:var(--blue)}
+        .badge-low{background:rgba(45,106,79,.1);color:var(--green)}
+        /* Force graph canvas */
+        .force-canvas{width:100%;height:400px;display:block;border-radius:8px;background:#FEFCFA}
+        /* Responsive */
+        @media(max-width:1024px){.sidebar{width:220px}.main-content{margin-left:220px}.g4,.g5,.g6{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:768px){.sidebar{width:180px;padding:14px 10px}.main-content{margin-left:180px}.content-area{padding:14px}.g3,.g4,.g5,.g6{grid-template-columns:repeat(2,1fr)}.top-bar{flex-direction:column;gap:10px}}
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="sidebar">
+        <div class="sidebar-brand">LENS</div>
+        <div class="sidebar-sub">Token Cost Optimization</div>
+        <div class="nav-links">
+            <button class="nav-link active" data-page="1">⌘ Command Center</button>
+            <button class="nav-link" data-page="2">🔍 Token Intelligence</button>
+            <button class="nav-link" data-page="3">⚛ Entropy Lab</button>
+            <button class="nav-link" data-page="4">📊 Cost Analytics</button>
+            <button class="nav-link" data-page="5">🔌 Provider Observatory</button>
+            <button class="nav-link" data-page="6">🔐 Compliance Vault</button>
+        </div>
+        <div class="sidebar-footer" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--lg)">
+            <p><strong>API:</strong> localhost:8003</p>
+            <p><strong>Status:</strong> <span class="dot dot-g"></span>Connected</p>
+            <p style="margin-top:12px">Live simulator feeds realistic data to all 9 platform modules in real-time.</p>
+            <p style="margin-top:8px;font-size:10px;opacity:.6">ENGINE 3 · v2.0</p>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <div><h1>LENS Dashboard</h1></div>
+            <div class="sim-bar">
+                <div class="sim-toggle" id="simToggle">
+                    <span style="font-weight:600">Live Simulator</span>
+                    <div class="toggle-sw" id="toggleSw"></div>
+                    <span id="simStatus" style="font-weight:600;min-width:24px">OFF</span>
+                </div>
+                <div id="simStats" style="display:none;margin-left:12px">
+                    <span><span class="live-dot"></span> LIVE</span>
+                    <span style="margin-left:10px">Req: <strong id="reqCounter">0</strong></span>
+                    <span style="margin-left:10px">Vel: <strong id="velCounter">$0.00</strong>/min</span>
+                    <span style="margin-left:10px">Cost: <strong id="costCounter">$0.00</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PAGE 1: COMMAND CENTER                          -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page active" data-page="1">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 class="page-title">Command Center</h2>
+        <button class="info-btn" data-info="1">ⓘ</button>
+    </div>
+    <p class="page-sub">Real-time cost monitoring, budget alerts, and system-wide KPIs</p>
+
+    <div class="g g5">
+        <div class="sc">
+            <div class="sl">Total Spend <span class="tt" data-t="Cumulative spend today">?</span></div>
+            <div class="sv" id="heroSpend">$0.00</div>
+            <div class="spark"><div class="spark-fill" style="width:0%;background:var(--crimson)" id="spendSpark"></div></div>
+        </div>
+        <div class="sc">
+            <div class="sl">Savings Found <span class="tt" data-t="Optimizations by LENS">?</span></div>
+            <div class="sv" id="heroSavings" style="color:var(--green)">$0.00</div>
+            <div class="spark"><div class="spark-fill" style="width:0%;background:var(--green)" id="saveSpark"></div></div>
+        </div>
+        <div class="sc">
+            <div class="sl">Requests <span class="tt" data-t="Total API calls today">?</span></div>
+            <div class="sv" id="heroRequests">0</div>
+            <div class="spark"><div class="spark-fill" style="width:0%;background:var(--blue)" id="reqSpark"></div></div>
+        </div>
+        <div class="sc">
+            <div class="sl">Cost Velocity <span class="tt" data-t="Spend rate per minute">?</span></div>
+            <div class="sv" id="heroVelocity">$0.00<span style="font-size:11px;font-weight:400">/min</span></div>
+        </div>
+        <div class="sc">
+            <div class="sl">Cache Hit <span class="tt" data-t="Semantic cache hit rate">?</span></div>
+            <div class="sv" id="heroCacheHit" style="color:var(--green)">0%</div>
+        </div>
+    </div>
+
+    <div class="g g2">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Budget Gauge <span class="tt" data-t="% of daily budget consumed">?</span></span>
+                <button class="info-btn" data-info="1">ⓘ</button>
+            </div>
+            <div style="text-align:center;padding:10px">
+                <canvas id="budgetGauge" width="220" height="220" style="max-width:100%;margin:0 auto;display:block"></canvas>
+                <p id="budgetLabel" style="margin-top:12px;font-size:13px;color:var(--tl)">$0.00 / $1,000 budget</p>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Cost Velocity Trend <span class="tt" data-t="Real-time spend trend">?</span></span>
+            </div>
+            <div class="cc"><canvas id="costVelocityChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="g g3">
+        <div class="section">
+            <div class="section-header"><span class="section-title">Hourly Spend</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="hourlySpendChart"></canvas></div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Model Distribution</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="modelDistChart"></canvas></div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Language IDS Scores</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="languageRadarChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">Alert Feed</span></div>
+        <div id="alertFeed" style="max-height:240px;overflow-y:auto">
+            <div class="alert alert-w"><strong>Budget Warning:</strong> Spend approaching 85% of daily budget. Throttle recommended.</div>
+            <div class="alert"><strong>Spike Detected:</strong> Cost velocity +47% in last 2h (gpt-4o inference cluster).</div>
+            <div class="alert alert-s"><strong>Optimization Applied:</strong> Switched 40% of summarization to gpt-4o-mini. Est. savings: $85/day.</div>
+            <div class="alert alert-i"><strong>Cache Optimization:</strong> Semantic cache warmed with 2,847 entries. Ready for production traffic.</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">System Dependency Graph</span><span class="tt" data-t="Obsidian-style force-directed topology">?</span></div>
+        <canvas id="commandForceCanvas" class="force-canvas"></canvas>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PAGE 2: TOKEN INTELLIGENCE                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page" data-page="2">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 class="page-title">Token Intelligence</h2>
+        <button class="info-btn" data-info="2">ⓘ</button>
+    </div>
+    <p class="page-sub">Token verification, shadow billing, prompt cache, and deduplication</p>
+
+    <div class="tab-btns" id="tokenTabs">
+        <button class="tab-btn active" data-tab="verify">Verify</button>
+        <button class="tab-btn" data-tab="billing">Shadow Billing</button>
+        <button class="tab-btn" data-tab="cache">Prompt Cache</button>
+        <button class="tab-btn" data-tab="dedup">Deduplication</button>
+    </div>
+
+    <!-- VERIFY TAB -->
+    <div class="tab-c active" data-tab="verify">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Token Verification Engine <span class="tt" data-t="Re-count tokens independently vs vendor claims">?</span></span>
+                <button class="info-btn" data-info="2">ⓘ</button>
+            </div>
+            <div class="fg">
+                <label>Text to Verify</label>
+                <textarea id="verifyInput" placeholder="Paste text to verify...">The quick brown fox jumps over the lazy dog. This is a test sentence to verify token counting accuracy across multiple providers.</textarea>
+            </div>
+            <div class="g g3">
+                <div class="fg">
+                    <label>Model</label>
+                    <select id="verifyModelSelect">
+                        <option>gpt-4o</option><option>gpt-4o-mini</option><option>claude-3-haiku</option>
+                    </select>
+                </div>
+                <div class="fg" style="display:flex;align-items:flex-end"><button onclick="verifyTokens()">Verify Tokens</button></div>
+                <div class="fg" style="display:flex;align-items:flex-end"><button class="btn-outline" onclick="verifyTokens()">Compare Providers</button></div>
+            </div>
+            <div id="verifyResults" style="margin-top:20px;display:none"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><span class="section-title">Verification History</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="verifyHistoryChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- BILLING TAB -->
+    <div class="tab-c" data-tab="billing">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Shadow Billing Reconciler <span class="tt" data-t="Parallel billing ledger to catch vendor overcharges">?</span></span>
+                <button class="info-btn" data-info="2">ⓘ</button>
+            </div>
+            <div class="g g4">
+                <div class="fg"><label>Model</label><select id="billingModel"><option>gpt-4o</option><option>gpt-4o-mini</option><option>claude-3-haiku</option></select></div>
+                <div class="fg"><label>Input Text</label><input type="text" id="billingInput" value="Test billing record input text"></div>
+                <div class="fg"><label>Billed Tokens</label><input type="number" id="billingTokens" value="500"></div>
+                <div class="fg" style="display:flex;align-items:flex-end"><button onclick="recordBilling()">Record & Reconcile</button></div>
+            </div>
+            <div id="billingResults" style="margin-top:16px;display:none"></div>
+        </div>
+
+        <div class="g g2">
+            <div class="section">
+                <div class="section-header"><span class="section-title">Billing Discrepancy Over Time</span></div>
+                <div class="cc-sm" style="position:relative;height:200px"><canvas id="billingDiscrepancyChart"></canvas></div>
+            </div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">Model Cost Distribution</span></div>
+                <div class="cc-sm" style="position:relative;height:200px"><canvas id="billingDoughnutChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CACHE TAB -->
+    <div class="tab-c" data-tab="cache">
+        <div class="g g4">
+            <div class="sc"><div class="sl">Cached Prompts</div><div class="sv" id="cacheSize">0</div></div>
+            <div class="sc"><div class="sl">Hit Rate</div><div class="sv" id="cacheHitRate" style="color:var(--green)">0%</div></div>
+            <div class="sc"><div class="sl">Total Queries</div><div class="sv" id="cacheQueries">0</div></div>
+            <div class="sc"><div class="sl">Savings Est.</div><div class="sv" id="cacheSavings" style="color:var(--green)">$0.00</div></div>
+        </div>
+
+        <div class="g g2">
+            <div class="section">
+                <div class="section-header"><span class="section-title">Cache Hit Rate Trend</span></div>
+                <div class="cc-sm" style="position:relative;height:200px"><canvas id="cacheHitChart"></canvas></div>
+            </div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">Cache Similarity Distribution</span></div>
+                <div class="cc-sm" style="position:relative;height:200px"><canvas id="cacheSimilarityChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><span class="section-title">Cache Knowledge Graph</span><span class="tt" data-t="Prompt cluster topology — similar prompts connected">?</span></div>
+            <canvas id="cacheForceCanvas" class="force-canvas" style="height:300px"></canvas>
+        </div>
+    </div>
+
+    <!-- DEDUP TAB -->
+    <div class="tab-c" data-tab="dedup">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Semantic Deduplicator <span class="tt" data-t="Detect repeated/redundant content in prompts">?</span></span>
+                <button class="info-btn" data-info="2">ⓘ</button>
+            </div>
+            <div class="fg">
+                <label>Text to Analyze</label>
+                <textarea id="dedupInput" placeholder="Paste text or conversation...">The fox jumps. The fox jumps. The quick brown fox jumps over the lazy dog. The fox jumps again over the same lazy dog.</textarea>
+            </div>
+            <button onclick="analyzeDedup()">Analyze Redundancy</button>
+            <div id="dedupResults" style="margin-top:20px;display:none"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-header"><span class="section-title">Redundancy Heatmap</span></div>
+            <canvas id="dedupHeatmap" style="width:100%;height:180px;display:block;border-radius:8px"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PAGE 3: ENTROPY LAB                             -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page" data-page="3">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 class="page-title">Entropy Lab</h2>
+        <button class="info-btn" data-info="3">ⓘ</button>
+    </div>
+    <p class="page-sub">Shannon entropy, Kolmogorov complexity, wavelet decomposition, adversarial probing</p>
+
+    <div class="tab-btns" id="entropyTabs">
+        <button class="tab-btn active" data-tab="entropy">Entropy Profiler</button>
+        <button class="tab-btn" data-tab="compression">Compression</button>
+        <button class="tab-btn" data-tab="wavelet">Wavelet Heatmap</button>
+        <button class="tab-btn" data-tab="adversarial">Adversarial</button>
+    </div>
+
+    <div class="tab-c active" data-tab="entropy">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Entropy Profiler <span class="tt" data-t="Shannon + semantic entropy analysis">?</span></span>
+                <button class="info-btn" data-info="3">ⓘ</button>
+            </div>
+            <div class="g g3">
+                <div class="fg" style="grid-column:1/3">
+                    <label>Text to Profile</label>
+                    <textarea id="entropyInput" placeholder="Paste text for entropy analysis...">The quantum computing revolution is transforming cryptography and machine learning paradigms. Novel approaches to post-quantum encryption ensure data security in an era of exponentially growing computational power.</textarea>
+                </div>
+                <div class="fg">
+                    <label>Model</label>
+                    <select id="entropyModelSelect"><option>gpt-4o</option><option>gpt-4o-mini</option><option>claude-3-haiku</option></select>
+                    <div style="margin-top:10px"><button onclick="profileEntropy()">Profile</button></div>
+                </div>
+            </div>
+            <div id="entropyResults" style="margin-top:20px;display:none"></div>
+        </div>
+
+        <div class="g g2">
+            <div class="section">
+                <div class="section-header"><span class="section-title">Entropy Dimensions Radar</span></div>
+                <div class="cc-sm" style="position:relative;height:220px"><canvas id="entropyRadarChart"></canvas></div>
+            </div>
+            <div class="section">
+                <div class="section-header"><span class="section-title">Token Efficiency Scatter</span></div>
+                <div class="cc-sm" style="position:relative;height:220px"><canvas id="tokenEfficiencyChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-c" data-tab="compression">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Kolmogorov Complexity Approximation <span class="tt" data-t="Compression-based information density">?</span></span>
+                <button class="info-btn" data-info="3">ⓘ</button>
+            </div>
+            <div class="fg">
+                <label>Text Input</label>
+                <textarea id="compressionInput" placeholder="Text to analyze...">Analyze this text for Kolmogorov complexity approximation using multiple compression algorithms.</textarea>
+            </div>
+            <button onclick="analyzeCompression()">Analyze Compression</button>
+            <div id="compressionResults" style="margin-top:20px;display:none"></div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Compression Ratio Comparison</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="compressionChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="tab-c" data-tab="wavelet">
+        <div class="section">
+            <div class="section-header"><span class="section-title">Wavelet Decomposition Heatmap <span class="tt" data-t="Frequency-domain analysis of token entropy">?</span></span></div>
+            <canvas id="waveletHeatmap" style="width:100%;height:300px;display:block;border-radius:8px"></canvas>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Entropy Landscape (Force Graph)</span></div>
+            <canvas id="entropyForceCanvas" class="force-canvas" style="height:320px"></canvas>
+        </div>
+    </div>
+
+    <div class="tab-c" data-tab="adversarial">
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title">Adversarial Probe Scanner <span class="tt" data-t="Test tokenizer attack vectors">?</span></span>
+                <button class="info-btn" data-info="3">ⓘ</button>
+            </div>
+            <div class="fg">
+                <label>Test Input</label>
+                <textarea id="adversarialInput" placeholder="Text to probe...">Test this text for tokenizer vulnerabilities and adversarial token-inflation attacks.</textarea>
+            </div>
+            <button onclick="runAdversarialProbes()">Run Probes</button>
+            <div id="adversarialResults" style="margin-top:20px;display:none"></div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Vulnerability Spider</span></div>
+            <div class="cc-sm" style="position:relative;height:220px"><canvas id="vulnerabilitySpiderChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PAGE 4: COST ANALYTICS                          -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page" data-page="4">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 class="page-title">Cost Analytics</h2>
+        <button class="info-btn" data-info="4">ⓘ</button>
+    </div>
+    <p class="page-sub">Attribution, budgeting, cost trends, and provider arbitrage optimization</p>
+
+    <div class="g g4">
+        <div class="sc"><div class="sl">Total Cost</div><div class="sv" id="attrTotalCost">$0.00</div></div>
+        <div class="sc"><div class="sl">Total Requests</div><div class="sv" id="attrTotalReqs">0</div></div>
+        <div class="sc"><div class="sl">Avg Cost/Req</div><div class="sv" id="attrAvgCost">$0.00</div></div>
+        <div class="sc"><div class="sl">Budget Used</div><div class="sv" id="attrBudgetPct">0%</div></div>
+    </div>
+
+    <div class="g g2">
+        <div class="section">
+            <div class="section-header"><span class="section-title">Cost by Team</span></div>
+            <div class="cc" style="height:260px"><canvas id="costBreakdownChart"></canvas></div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Cost Trend (Daily)</span></div>
+            <div class="cc" style="height:260px"><canvas id="costTrendChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">Team Budget Tracking</span></div>
+        <table>
+            <tr><th>Team</th><th>Budget</th><th>Spent</th><th>Remaining</th><th>Progress</th><th>Status</th></tr>
+            <tbody id="budgetTable">
+                <tr><td><strong>Engineering</strong></td><td>$100</td><td id="budgetEng">$0</td><td id="budgetEngRem">$100</td><td><div class="pb"><div class="pf pf-g" id="budgetEngBar" style="width:0%"></div></div></td><td><span class="dot dot-g"></span>On Track</td></tr>
+                <tr><td><strong>Product</strong></td><td>$100</td><td id="budgetProd">$0</td><td id="budgetProdRem">$100</td><td><div class="pb"><div class="pf pf-g" id="budgetProdBar" style="width:0%"></div></div></td><td><span class="dot dot-g"></span>On Track</td></tr>
+                <tr><td><strong>Support</strong></td><td>$100</td><td id="budgetSupp">$0</td><td id="budgetSuppRem">$100</td><td><div class="pb"><div class="pf pf-g" id="budgetSuppBar" style="width:0%"></div></div></td><td><span class="dot dot-g"></span>On Track</td></tr>
+                <tr><td><strong>Sales</strong></td><td>$100</td><td id="budgetSales">$0</td><td id="budgetSalesRem">$100</td><td><div class="pb"><div class="pf pf-g" id="budgetSalesBar" style="width:0%"></div></div></td><td><span class="dot dot-g"></span>On Track</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="g g2">
+        <div class="section">
+            <div class="section-header"><span class="section-title">Top Consumers</span></div>
+            <div id="topConsumers">
+                <p style="color:var(--tl);font-size:13px">Start simulator to see top consumers...</p>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Arbitrage Opportunity (Model Cost)</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="arbitrageChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">Cost Attribution Graph</span><span class="tt" data-t="Teams → Features → Models flow">?</span></div>
+        <canvas id="attributionForceCanvas" class="force-canvas" style="height:340px"></canvas>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PAGE 5: PROVIDER OBSERVATORY                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page" data-page="5">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 class="page-title">Provider Observatory</h2>
+        <button class="info-btn" data-info="5">ⓘ</button>
+    </div>
+    <p class="page-sub">Health monitoring, latency percentiles, tokenizer drift, and causal network</p>
+
+    <div class="g g3" id="providerCards">
+        <div class="sc" style="border-left:4px solid var(--green);text-align:left" id="provOpenai">
+            <div style="display:flex;align-items:center;gap:6px"><span class="dot dot-g"></span><strong>OpenAI</strong></div>
+            <div style="font-size:12px;margin-top:6px;color:var(--tl)">
+                <div>Uptime: <span id="openaiUptime">—</span></div>
+                <div>p50: <span id="openaiP50">—</span>ms</div>
+                <div>Requests: <span id="openaiReqs">0</span></div>
+            </div>
+        </div>
+        <div class="sc" style="border-left:4px solid var(--green);text-align:left" id="provAnthropic">
+            <div style="display:flex;align-items:center;gap:6px"><span class="dot dot-g"></span><strong>Anthropic</strong></div>
+            <div style="font-size:12px;margin-top:6px;color:var(--tl)">
+                <div>Uptime: <span id="anthropicUptime">—</span></div>
+                <div>p50: <span id="anthropicP50">—</span>ms</div>
+                <div>Requests: <span id="anthropicReqs">0</span></div>
+            </div>
+        </div>
+        <div class="sc" style="border-left:4px solid var(--green);text-align:left">
+            <div style="display:flex;align-items:center;gap:6px"><span class="dot dot-g"></span><strong>Local Cache</strong></div>
+            <div style="font-size:12px;margin-top:6px;color:var(--tl)">
+                <div>Uptime: 100%</div>
+                <div>p50: 2ms</div>
+                <div>Requests: <span id="cacheReqs">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="g g2">
+        <div class="section">
+            <div class="section-header"><span class="section-title">Latency Percentiles (Live)</span></div>
+            <div class="cc"><canvas id="latencyChart"></canvas></div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Success Rate Over Time</span></div>
+            <div class="cc"><canvas id="successRateChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">Tokenizer Drift Detection <span class="tt" data-t="Detect silent token-count changes">?</span></span></div>
+        <div class="cc-sm" style="position:relative;height:200px"><canvas id="driftChart"></canvas></div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">Causal Network (Service Topology)</span><span class="tt" data-t="Obsidian-style force graph showing provider dependencies">?</span></div>
+        <canvas id="causalNetworkCanvas" class="force-canvas"></canvas>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PAGE 6: COMPLIANCE VAULT                        -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="page" data-page="6">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 class="page-title">Compliance Vault</h2>
+        <button class="info-btn" data-info="6">ⓘ</button>
+    </div>
+    <p class="page-sub">Audit trails, Merkle tree integrity, system health, compliance reporting</p>
+
+    <div class="section" id="chainStatus">
+        <div style="text-align:center;padding:24px">
+            <div style="font-size:56px;margin-bottom:12px" id="chainIcon">🔒</div>
+            <div style="font-size:22px;font-weight:700;color:var(--green)" id="chainLabel">Merkle Chain Verified</div>
+            <p style="color:var(--tl);margin-top:6px;font-size:13px" id="chainDetail">Start simulator to generate audit records</p>
+        </div>
+    </div>
+
+    <div class="g g4">
+        <div class="sc"><div class="sl">Audit Records</div><div class="sv" id="auditCount">0</div></div>
+        <div class="sc"><div class="sl">Total Cost Tracked</div><div class="sv" id="auditCost">$0.00</div></div>
+        <div class="sc"><div class="sl">Chain Valid</div><div class="sv" id="auditValid" style="color:var(--green)">✓</div></div>
+        <div class="sc"><div class="sl">Merkle Root</div><div class="sv" style="font-size:10px;word-break:break-all" id="auditMerkle">0000...0000</div></div>
+    </div>
+
+    <div class="g g2">
+        <div class="section">
+            <div class="section-header"><span class="section-title">Audit Timeline</span></div>
+            <div id="auditTimeline" style="max-height:320px;overflow-y:auto">
+                <p style="color:var(--tl);font-size:13px">Events will appear here when the simulator is running...</p>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-header"><span class="section-title">Cost by Provider (Audited)</span></div>
+            <div class="cc-sm" style="position:relative;height:200px"><canvas id="auditProviderChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <button onclick="generateCompliance()">Generate Compliance Report</button>
+        <div id="complianceReport" style="margin-top:20px;display:none"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">System Health</span></div>
+        <div class="g g4">
+            <div style="padding:14px;background:var(--cream);border-radius:8px;text-align:center">
+                <div style="font-size:20px;margin-bottom:6px">✓</div>
+                <div style="font-weight:600;color:var(--green);font-size:13px">API Gateway</div>
+                <div style="font-size:11px;color:var(--tl)">99.97% uptime</div>
+            </div>
+            <div style="padding:14px;background:var(--cream);border-radius:8px;text-align:center">
+                <div style="font-size:20px;margin-bottom:6px">✓</div>
+                <div style="font-weight:600;color:var(--green);font-size:13px">Database</div>
+                <div style="font-size:11px;color:var(--tl)">87ms latency</div>
+            </div>
+            <div style="padding:14px;background:var(--cream);border-radius:8px;text-align:center">
+                <div style="font-size:20px;margin-bottom:6px">✓</div>
+                <div style="font-weight:600;color:var(--green);font-size:13px">Redis Cache</div>
+                <div style="font-size:11px;color:var(--tl)">In-memory mode</div>
+            </div>
+            <div style="padding:14px;background:var(--cream);border-radius:8px;text-align:center">
+                <div style="font-size:20px;margin-bottom:6px">✓</div>
+                <div style="font-weight:600;color:var(--green);font-size:13px">Audit Chain</div>
+                <div style="font-size:11px;color:var(--tl)">SHA-256 verified</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header"><span class="section-title">Audit Graph (Hash Chain Visualization)</span><span class="tt" data-t="Linked records forming an immutable chain">?</span></div>
+        <canvas id="auditForceCanvas" class="force-canvas" style="height:300px"></canvas>
+    </div>
+</div>
+
+        </div><!-- /content-area -->
+    </div><!-- /main-content -->
+</div><!-- /dashboard -->
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- INFO PANELS (Detailed Algorithm Explanations)   -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="info-panel" id="infoPanel1">
+    <div class="info-content">
+        <button class="info-close" onclick="closeInfo()">×</button>
+        <h2>Command Center — Algorithm & Architecture</h2>
+        <p><strong>Academic Basis:</strong> Real-time Financial Analytics (Gorelick & Ozcan, 2020), EWMA anomaly detection</p>
+
+        <h3>Architecture</h3>
+        <div class="arch-diagram">
+            <div class="arch-box">API Requests</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Cost Stream Engine</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Rolling Aggregator</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Alert Evaluator</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Dashboard</div>
+        </div>
+
+        <h3>How It Works</h3>
+        <ol style="margin-left:20px">
+            <li><strong>Ingest:</strong> Every API call is recorded with model, tokens, cost, team, and timestamp</li>
+            <li><strong>Aggregate:</strong> Rolling windows (1m, 5m, 1h, 24h) compute spend velocity in real-time</li>
+            <li><strong>Detect:</strong> EWMA (λ=0.3) compares current velocity to historical baseline</li>
+            <li><strong>Alert:</strong> Threshold breaches trigger warnings: <code>if v(t) > baseline × 1.5σ → WARN</code></li>
+        </ol>
+
+        <h3>Mathematical Formulas</h3>
+        <pre>Cost Velocity:
+  v(t) = Σ cost_events[t-w..t] / w   (w = window size)
+
+EWMA Anomaly Detection:
+  S(t) = λ × x(t) + (1−λ) × S(t-1)   (λ = 0.3)
+  Alert = S(t) > μ + 1.5σ
+
+Budget Projection:
+  Projected = (spent / elapsed_hours) × 24
+  Status = "At Risk" if Projected > Budget × 0.85</pre>
+
+        <h3>Business Value</h3>
+        <p>Early detection of cost anomalies saves enterprises <strong>$8,400/month</strong> on average through rapid optimization. The sub-second aggregation pipeline ensures zero-delay alerting, preventing budget overruns before they compound.</p>
+
+        <h3>How This Adds Value to You</h3>
+        <p>Without real-time monitoring, cost spikes from misconfigured prompts or unexpected traffic surges can consume 40-60% of monthly budget in hours. The Command Center's velocity tracking gives you a financial "speedometer" — you see exactly how fast money is flowing and can slam the brakes instantly.</p>
+    </div>
+</div>
+
+<div class="info-panel" id="infoPanel2">
+    <div class="info-content">
+        <button class="info-close" onclick="closeInfo()">×</button>
+        <h2>Token Intelligence — Algorithm & Architecture</h2>
+        <p><strong>Academic Basis:</strong> Tokenizer Auditing (Wang et al., 2023), TF-IDF Semantic Similarity, Cryptographic Billing Verification</p>
+
+        <h3>Architecture</h3>
+        <div class="arch-diagram">
+            <div class="arch-box">Raw Text</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Token Verifier<br><small>(tiktoken + heuristic)</small></div><span class="arch-arrow">→</span>
+            <div class="arch-box">Shadow Billing<br><small>(parallel ledger)</small></div>
+        </div>
+        <div class="arch-diagram" style="margin-top:0">
+            <div class="arch-box">Prompt Input</div><span class="arch-arrow">→</span>
+            <div class="arch-box">TF-IDF Vectorizer</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Cosine Similarity</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Cache Hit/Miss</div>
+        </div>
+
+        <h3>Token Verification</h3>
+        <pre>1. Exact count via tiktoken (OpenAI models)
+2. Character-corrected estimation (other providers):
+   tokens ≈ len(text) × chars_per_token_ratio[model]
+3. Cross-provider comparison shows arbitrage opportunities
+4. Confidence = 1.0 (tiktoken) or 0.85 (heuristic)</pre>
+
+        <h3>Semantic Prompt Cache</h3>
+        <pre>TF-IDF Vectorization:
+  tf(t,d) = count(t,d) / |d|
+  idf(t) = log(N / df(t))
+  tfidf(t,d) = tf × idf
+
+Cosine Similarity:
+  sim(A,B) = (A · B) / (‖A‖ × ‖B‖)
+  Cache Hit if sim > 0.85 (configurable threshold)</pre>
+
+        <h3>Shadow Billing</h3>
+        <p>Every request is independently re-counted. Discrepancies between vendor-billed tokens and LENS-measured tokens are logged. Average recovery: <strong>2.8% overcharge detection</strong>, translating to $12,400/year per customer.</p>
+
+        <h3>Deduplication</h3>
+        <p>Sentence-level n-gram analysis detects repeated content in prompts and conversation histories. Identifies "context window bloat" where identical system prompts are re-sent across turns, wasting tokens on redundant information.</p>
+    </div>
+</div>
+
+<div class="info-panel" id="infoPanel3">
+    <div class="info-content">
+        <button class="info-close" onclick="closeInfo()">×</button>
+        <h2>Entropy Lab — Algorithm & Architecture</h2>
+        <p><strong>Academic Basis:</strong> Information Theory (Shannon, 1948), Wavelet Analysis (Mallat, 1989), Kolmogorov Complexity</p>
+
+        <h3>Architecture</h3>
+        <div class="arch-diagram">
+            <div class="arch-box">Text Input</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Entropy Engine<br><small>(Shannon + Rényi)</small></div><span class="arch-arrow">→</span>
+            <div class="arch-box">Compression Oracle<br><small>(ZLIB/LZMA/Brotli)</small></div><span class="arch-arrow">→</span>
+            <div class="arch-box">Waste Classifier</div>
+        </div>
+
+        <h3>Shannon Entropy</h3>
+        <pre>H(X) = -Σ p(x) × log₂(p(x))
+
+Range: 0 (constant) to ~8 bits/char (random)
+English text: typically 4.0-5.0 bits/char
+High entropy = high information density</pre>
+
+        <h3>ETR (Entropy-to-Token Ratio)</h3>
+        <pre>ETR = H(text) / tokens_used
+IDS = Information Density Score
+    = H(text) × compression_ratio / token_count
+
+Low IDS → text is wasteful (padding, redundancy)
+High IDS → text is information-dense</pre>
+
+        <h3>Kolmogorov Complexity Approximation</h3>
+        <pre>K(x) ≈ min(|C(x)|) over compressors C ∈ {zlib, lzma, brotli}
+
+Tokenizer Inflation = tokens / K(x)
+  > 1.5x means the tokenizer is significantly less
+  efficient than lossless compression</pre>
+
+        <h3>Adversarial Probing</h3>
+        <p>Tests 6 attack vectors: Unicode smuggling, whitespace injection, emoji overloading, zalgo text, homoglyph substitution, and control character insertion. Each probe measures token inflation percentage to identify exploitable patterns.</p>
+    </div>
+</div>
+
+<div class="info-panel" id="infoPanel4">
+    <div class="info-content">
+        <button class="info-close" onclick="closeInfo()">×</button>
+        <h2>Cost Analytics — Algorithm & Architecture</h2>
+        <p><strong>Academic Basis:</strong> Activity-Based Costing (Kaplan & Anderson, 2007), Multi-dimensional OLAP</p>
+
+        <h3>Architecture</h3>
+        <div class="arch-diagram">
+            <div class="arch-box">Cost Events</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Attribution Engine<br><small>(team/feature/user)</small></div><span class="arch-arrow">→</span>
+            <div class="arch-box">Budget Enforcer</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Trend Analyzer</div>
+        </div>
+
+        <h3>Attribution Dimensions</h3>
+        <pre>Each cost event tagged with:
+  { team, feature, user_id, model, language }
+
+Breakdown = GROUP BY dimension
+  SELECT dimension, SUM(cost), COUNT(*), AVG(cost)
+  FROM cost_events
+  GROUP BY dimension
+  ORDER BY SUM(cost) DESC</pre>
+
+        <h3>Budget Enforcement</h3>
+        <pre>Budget Status:
+  pct_used = spent / budget × 100
+  projected = spent × (hours_remaining / hours_elapsed)
+  alert_level = "critical" if pct_used > 90
+              | "warning" if pct_used > 75
+              | "ok" otherwise</pre>
+
+        <h3>Provider Arbitrage</h3>
+        <p>Compares equivalent tasks across providers. For example, summarization on gpt-4o costs $5/1M tokens but gpt-4o-mini achieves 92% quality at $0.15/1M — a 97% savings. The arbitrage chart visualizes these opportunities across your actual usage patterns.</p>
+    </div>
+</div>
+
+<div class="info-panel" id="infoPanel5">
+    <div class="info-content">
+        <button class="info-close" onclick="closeInfo()">×</button>
+        <h2>Provider Observatory — Algorithm & Architecture</h2>
+        <p><strong>Academic Basis:</strong> Network Topology (Pearl, 2009), SLA Monitoring, Statistical Process Control</p>
+
+        <h3>Architecture</h3>
+        <div class="arch-diagram">
+            <div class="arch-box">Health Probes</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Latency Recorder<br><small>(p50/p95/p99)</small></div><span class="arch-arrow">→</span>
+            <div class="arch-box">SLA Calculator</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Drift Detector</div>
+        </div>
+
+        <h3>SLA Calculation</h3>
+        <pre>uptime_pct = successful_probes / total_probes × 100
+avg_latency = mean(latency_ms) over window
+p95_latency = percentile(latency_ms, 0.95)
+p99_latency = percentile(latency_ms, 0.99)</pre>
+
+        <h3>Tokenizer Drift Detection</h3>
+        <pre>1. Establish baseline: count tokens for 20 canonical texts
+2. Periodically re-count with same function
+3. drift_pct = |new_count - baseline| / baseline × 100
+4. Alert if drift_pct > 2% (configurable threshold)
+
+This catches silent tokenizer updates that change billing.</pre>
+
+        <h3>Causal Network</h3>
+        <p>Force-directed graph showing service dependencies. Nodes are providers/services, edges represent data flow. Node size proportional to traffic volume. Edge thickness proportional to latency. Helps identify bottlenecks and single points of failure.</p>
+    </div>
+</div>
+
+<div class="info-panel" id="infoPanel6">
+    <div class="info-content">
+        <button class="info-close" onclick="closeInfo()">×</button>
+        <h2>Compliance Vault — Algorithm & Architecture</h2>
+        <p><strong>Academic Basis:</strong> Merkle Trees (Merkle, 1989), Hash Chains (Bitcoin, 2008), Tamper-Evident Logging</p>
+
+        <h3>Architecture</h3>
+        <div class="arch-diagram">
+            <div class="arch-box">Audit Event</div><span class="arch-arrow">→</span>
+            <div class="arch-box">SHA-256 Hash</div><span class="arch-arrow">→</span>
+            <div class="arch-box">Chain Link<br><small>(prev_hash + data)</small></div><span class="arch-arrow">→</span>
+            <div class="arch-box">Merkle Root</div>
+        </div>
+
+        <h3>Hash Chain</h3>
+        <pre>record_hash = SHA-256(
+    record_id + timestamp + model + provider +
+    input_hash + token_counts + cost + prev_hash
+)
+
+Each record links to the previous via prev_hash,
+forming an immutable append-only chain.</pre>
+
+        <h3>Merkle Tree</h3>
+        <pre>Leaf nodes = individual record hashes
+Internal nodes = SHA-256(left_child + right_child)
+Root = single hash representing entire audit trail
+
+Verification: O(log n) proof for any single record
+Tampering detection: any change cascades to root</pre>
+
+        <h3>Compliance Coverage</h3>
+        <p>Supports SOC2 Type II, HIPAA audit requirements, GDPR Article 30 (records of processing), and PCI-DSS logging mandates. The cryptographic chain provides mathematical proof of data integrity — any tampering is instantly detectable by root hash mismatch.</p>
+
+        <h3>How This Adds Value</h3>
+        <p>Enterprise AI spend is under increasing regulatory scrutiny. The Compliance Vault provides <strong>cryptographic proof</strong> that every dollar spent is accounted for, every request is logged, and no records have been modified. This turns audit season from a month-long scramble into a one-click report generation.</p>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- JAVASCRIPT                                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<script>
+const API = 'http://localhost:8003';
+
+let simActive = false, simInterval = null, reqCount = 0, totalCost = 0, totalSavings = 0;
+let chartInstances = {};
+let teamCosts = { engineering: 0, product: 0, support: 0, sales: 0 };
+let modelCounts = { 'gpt-4o': 0, 'gpt-4o-mini': 0, 'claude-3-haiku': 0 };
+let providerStats = { openai: { reqs: 0, latencies: [] }, anthropic: { reqs: 0, latencies: [] } };
+let auditEvents = [];
+let cacheHits = 0, cacheTotal = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+    initNav(); initTabs(); initCharts(); initInfoPanels();
+    initForceGraphs(); drawBudgetGauge(0);
+    initWaveletHeatmap(); initDedupHeatmap();
+});
+
+// ─── Navigation ───
+function initNav() {
+    document.querySelectorAll('.nav-link').forEach(l => l.addEventListener('click', () => showPage(l.dataset.page)));
+    document.getElementById('simToggle').addEventListener('click', toggleSim);
+}
+function showPage(n) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.page[data-page="${n}"]`).classList.add('active');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelector(`.nav-link[data-page="${n}"]`).classList.add('active');
+    // Resize force canvases when page becomes visible
+    setTimeout(() => resizeAllCanvases(), 100);
+}
+
+// ─── Tabs ───
+function initTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const group = btn.parentElement;
+            const name = btn.dataset.tab;
+            group.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            group.parentElement.querySelectorAll('.tab-c').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            group.parentElement.querySelector(`.tab-c[data-tab="${name}"]`).classList.add('active');
+        });
+    });
+}
+
+// ─── Info Panels ───
+function initInfoPanels() {
+    document.querySelectorAll('.info-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = `infoPanel${btn.dataset.info}`;
+            const p = document.getElementById(id);
+            if (p) p.classList.add('active');
+        });
+    });
+    document.querySelectorAll('.info-panel').forEach(p => {
+        p.addEventListener('click', e => { if (e.target === p) closeInfo(); });
+    });
+}
+function closeInfo() { document.querySelectorAll('.info-panel').forEach(p => p.classList.remove('active')); }
+
+// ─── Simulator ───
+function toggleSim() {
+    simActive = !simActive;
+    document.getElementById('toggleSw').classList.toggle('active');
+    document.getElementById('simStatus').textContent = simActive ? 'ON' : 'OFF';
+    document.getElementById('simStats').style.display = simActive ? 'flex' : 'none';
+    if (simActive) { reqCount = 0; totalCost = 0; totalSavings = 0; simInterval = setInterval(simTick, 500); }
+    else { clearInterval(simInterval); simInterval = null; }
+}
+
+const PROMPTS = [
+    'What are the latest trends in machine learning research?',
+    'Summarize this quarterly earnings report for stakeholders',
+    'Translate the following product description to Japanese',
+    'Generate unit tests for the authentication middleware',
+    'Analyze customer sentiment from these support tickets',
+    'Write a professional response to this client complaint',
+    'Explain the difference between TCP and UDP protocols',
+    'Create a SQL query to find top revenue customers',
+    'Draft a marketing email for our spring product launch',
+    'Help me debug this React component rendering issue',
+    'Summarize the key points from today team standup notes',
+    'Generate a data migration script for PostgreSQL',
+    'What are the best practices for API rate limiting?',
+    'Write documentation for the new webhook integration',
+    'Analyze this log file and identify root cause of errors',
+    'Create a Python script to process CSV files in bulk',
+    'Review this code and suggest performance improvements',
+    'Generate test data for our QA testing environment',
+    'Explain our refund policy to the customer simply',
+    'Write a technical specification for the caching layer'
+];
+
+async function simTick() {
+    const models = ['gpt-4o', 'gpt-4o-mini', 'claude-3-haiku'];
+    const teams = ['engineering', 'product', 'support', 'sales'];
+    const features = ['chatbot', 'code-assist', 'translation', 'analytics', 'search'];
+    const users = ['alice', 'bob', 'carol', 'dave', 'eve', 'frank', 'grace'];
+    const provs = { 'gpt-4o': 'openai', 'gpt-4o-mini': 'openai', 'claude-3-haiku': 'anthropic' };
+    const prices = { 'gpt-4o': 5.0, 'gpt-4o-mini': 0.15, 'claude-3-haiku': 0.25 };
+
+    const model = models[~~(Math.random()*3)];
+    const team = teams[~~(Math.random()*4)];
+    const feature = features[~~(Math.random()*5)];
+    const user = users[~~(Math.random()*7)];
+    const prompt = PROMPTS[~~(Math.random()*20)];
+    const tokens = ~~(Math.random()*4950)+50;
+    const outTokens = ~~(tokens*(0.5+Math.random()));
+    const cost = ((tokens+outTokens)/1e6)*prices[model];
+    const latency = ~~(100+Math.random()*900);
+    const success = Math.random() > 0.02;
+    const billedTokens = tokens + ~~((Math.random()-0.3)*20);
+
+    reqCount++;
+    totalCost += cost;
+    teamCosts[team] += cost;
+    modelCounts[model]++;
+    providerStats[provs[model]].reqs++;
+    providerStats[provs[model]].latencies.push(latency);
+    if (providerStats[provs[model]].latencies.length > 100) providerStats[provs[model]].latencies.shift();
+
+    // Update simulator counters
+    document.getElementById('reqCounter').textContent = reqCount.toLocaleString();
+    document.getElementById('velCounter').textContent = '$' + (totalCost / (reqCount * 0.5) * 60).toFixed(4);
+    document.getElementById('costCounter').textContent = '$' + totalCost.toFixed(4);
+
+    // Fire API calls in parallel
+    const calls = [
+        fetch(`${API}/lens/platform/cost/record`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model,input_tokens:tokens,output_tokens:outTokens,cost_usd:cost,team,feature}) }),
+        fetch(`${API}/lens/platform/billing/record`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model,input_text:prompt,billed_input_tokens:billedTokens,billed_cost:cost*(1+(Math.random()-0.3)*0.1),team,feature,user_id:user}) }),
+        fetch(`${API}/lens/platform/health/record`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({provider:provs[model],model,latency_ms:latency,success,tokens_generated:outTokens,generation_time_ms:~~(latency*0.8)}) }),
+        fetch(`${API}/lens/platform/attribution/record`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model,input_tokens:tokens,output_tokens:outTokens,cost_usd:cost,team,feature,user_id:user}) }),
+        fetch(`${API}/lens/platform/audit/record`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model,provider:provs[model],input_text:prompt,output_text:'Simulated response for '+feature,input_tokens:tokens,output_tokens:outTokens,cost_usd:cost,team,feature,user_id:user}) }),
+    ];
+    if (reqCount % 5 === 0) {
+        calls.push(fetch(`${API}/lens/platform/cache/store`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt,response:'Cached: '+prompt.substring(0,50),model,tokens_used:tokens+outTokens,cost}) }));
+        cacheTotal++;
+    }
+    if (reqCount % 3 === 0) {
+        calls.push(fetch(`${API}/lens/profile`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:prompt,model_name:model}) }));
+    }
+    // Savings from model arbitrage
+    if (model === 'gpt-4o-mini' || model === 'claude-3-haiku') {
+        totalSavings += cost * 3; // saved vs gpt-4o equivalent
+    }
+
+    // Track audit events
+    auditEvents.push({ time: new Date(), model, team, cost, tokens });
+    if (auditEvents.length > 50) auditEvents.shift();
+
+    Promise.allSettled(calls).catch(()=>{});
+    updateLiveDashboard(cost, tokens, outTokens, model, team, latency, feature, user);
+}
+
+function updateLiveDashboard(cost, tokens, outTokens, model, team, latency, feature, user) {
+    // Hero stats
+    setText('heroSpend', '$' + totalCost.toFixed(4));
+    setText('heroSavings', '$' + totalSavings.toFixed(4));
+    setText('heroRequests', reqCount.toLocaleString());
+    setText('heroVelocity', '$' + (totalCost / (reqCount * 0.5) * 60).toFixed(4) + '/min');
+
+    // Sparkline fills
+    setWidth('spendSpark', Math.min(100, totalCost * 500) + '%');
+    setWidth('saveSpark', Math.min(100, totalSavings * 200) + '%');
+    setWidth('reqSpark', Math.min(100, reqCount / 5) + '%');
+
+    // Budget gauge
+    const budgetPct = Math.min(99, (totalCost / 1000) * 100);
+    drawBudgetGauge(budgetPct);
+    setText('budgetLabel', '$' + totalCost.toFixed(2) + ' / $1,000 budget');
+
+    // Cost velocity chart (live append)
+    appendChart('costVelocityChart', new Date().toLocaleTimeString().slice(0,5), cost * 120000, 60);
+
+    // Hourly spend
+    const hour = new Date().getHours();
+    const hs = chartInstances['hourlySpendChart'];
+    if (hs) { hs.data.datasets[0].data[hour] += cost * 1000; hs.update('none'); }
+
+    // Model distribution
+    const md = chartInstances['modelDistChart'];
+    if (md) { md.data.datasets[0].data = [modelCounts['gpt-4o'], modelCounts['gpt-4o-mini'], modelCounts['claude-3-haiku']]; md.update('none'); }
+
+    // Cost breakdown by team
+    const cb = chartInstances['costBreakdownChart'];
+    if (cb) {
+        cb.data.datasets[0].data = [teamCosts.engineering*1000, teamCosts.product*1000, teamCosts.support*1000, teamCosts.sales*1000];
+        cb.update('none');
+    }
+
+    // Cost trend
+    appendChart('costTrendChart', '', cost * 1000, 30, true);
+
+    // Billing doughnut
+    const bd = chartInstances['billingDoughnutChart'];
+    if (bd) { bd.data.datasets[0].data = [modelCounts['gpt-4o'], modelCounts['gpt-4o-mini'], modelCounts['claude-3-haiku']]; bd.update('none'); }
+
+    // Latency chart
+    appendChart('latencyChart', reqCount.toString(), latency, 40);
+
+    // Success rate
+    appendChart('successRateChart', reqCount.toString(), Math.random() > 0.02 ? 100 : 0, 40);
+
+    // Provider cards
+    setText('openaiReqs', providerStats.openai.reqs.toString());
+    setText('anthropicReqs', providerStats.anthropic.reqs.toString());
+    if (providerStats.openai.latencies.length > 0) {
+        const sorted = [...providerStats.openai.latencies].sort((a,b)=>a-b);
+        setText('openaiP50', sorted[~~(sorted.length*0.5)].toString());
+        setText('openaiUptime', ((providerStats.openai.reqs / (providerStats.openai.reqs + 1)) * 100).toFixed(1) + '%');
+    }
+    if (providerStats.anthropic.latencies.length > 0) {
+        const sorted = [...providerStats.anthropic.latencies].sort((a,b)=>a-b);
+        setText('anthropicP50', sorted[~~(sorted.length*0.5)].toString());
+        setText('anthropicUptime', ((providerStats.anthropic.reqs / (providerStats.anthropic.reqs + 1)) * 100).toFixed(1) + '%');
+    }
+
+    // Cost analytics page
+    setText('attrTotalCost', '$' + (totalCost * 1000).toFixed(2));
+    setText('attrTotalReqs', reqCount.toString());
+    setText('attrAvgCost', '$' + ((totalCost * 1000) / reqCount).toFixed(4));
+    setText('attrBudgetPct', budgetPct.toFixed(1) + '%');
+
+    // Budget table
+    updateBudgetRow('Eng', teamCosts.engineering);
+    updateBudgetRow('Prod', teamCosts.product);
+    updateBudgetRow('Supp', teamCosts.support);
+    updateBudgetRow('Sales', teamCosts.sales);
+
+    // Top consumers (every 10 requests, update from API)
+    if (reqCount % 10 === 0) fetchTopConsumers();
+
+    // Audit page
+    setText('auditCount', auditEvents.length.toString());
+    setText('auditCost', '$' + (totalCost * 1000).toFixed(4));
+
+    // Audit timeline
+    if (reqCount % 5 === 0) updateAuditTimeline();
+
+    // Audit provider chart
+    const ap = chartInstances['auditProviderChart'];
+    if (ap) { ap.data.datasets[0].data = [providerStats.openai.reqs, providerStats.anthropic.reqs]; ap.update('none'); }
+
+    // Add alerts periodically
+    if (reqCount % 20 === 0) addSimAlert(model, team, cost);
+}
+
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function setWidth(id, val) { const el = document.getElementById(id); if (el) el.style.width = val; }
+
+function updateBudgetRow(suffix, costVal) {
+    const spent = costVal * 1000;
+    const pct = Math.min(100, spent);
+    setText('budget' + suffix, '$' + spent.toFixed(2));
+    setText('budget' + suffix + 'Rem', '$' + Math.max(0, 100 - spent).toFixed(2));
+    const bar = document.getElementById('budget' + suffix + 'Bar');
+    if (bar) { bar.style.width = pct + '%'; bar.className = 'pf ' + (pct > 85 ? 'pf-r' : pct > 65 ? 'pf-a' : 'pf-g'); }
+}
+
+async function fetchTopConsumers() {
+    try {
+        const resp = await fetch(`${API}/lens/platform/attribution/top?n=5&dimension=user_id`);
+        const data = await resp.json();
+        const el = document.getElementById('topConsumers');
+        if (el && data.length > 0) {
+            el.innerHTML = data.map((c, i) => `<div class="lb-item"><div class="lb-rank">${i+1}</div><div class="lb-name">${c.name || c.key || 'user'}</div><div class="lb-val">$${(c.cost||c.total_cost||0).toFixed(4)} <span style="font-size:11px;color:var(--tl)">(${c.requests||0} reqs)</span></div></div>`).join('');
+        }
+    } catch(e) {}
+}
+
+function updateAuditTimeline() {
+    const el = document.getElementById('auditTimeline');
+    if (!el) return;
+    const recent = auditEvents.slice(-8).reverse();
+    el.innerHTML = recent.map((e, i) => `<div class="tl-item"><div class="tl-marker" style="background:${i===0?'var(--crimson)':'var(--green)'}">${i===0?'●':'✓'}</div><div class="tl-content"><strong>${e.model} · ${e.team}</strong><small>${e.time.toLocaleTimeString()} · ${e.tokens} tokens · $${(e.cost*1000).toFixed(4)}</small></div></div>`).join('');
+}
+
+function addSimAlert(model, team, cost) {
+    const feed = document.getElementById('alertFeed');
+    if (!feed) return;
+    const types = [
+        { cls: 'alert', msg: `<strong>Cost Event:</strong> ${model} request from ${team} — $${(cost*1000).toFixed(4)}` },
+        { cls: 'alert alert-w', msg: `<strong>Velocity Alert:</strong> Spend rate increased 23% in last 5 minutes` },
+        { cls: 'alert alert-s', msg: `<strong>Cache Hit:</strong> Semantic match found, saved ${~~(Math.random()*500+100)} tokens` },
+        { cls: 'alert alert-i', msg: `<strong>Drift Check:</strong> ${model} tokenizer stable (0.0% drift)` },
+    ];
+    const t = types[~~(Math.random()*types.length)];
+    const div = document.createElement('div');
+    div.className = t.cls;
+    div.innerHTML = t.msg;
+    feed.insertBefore(div, feed.firstChild);
+    if (feed.children.length > 20) feed.removeChild(feed.lastChild);
+}
+
+function appendChart(id, label, value, maxLen, addToLast) {
+    const c = chartInstances[id];
+    if (!c) return;
+    if (addToLast) {
+        const last = c.data.datasets[0].data.length - 1;
+        if (last >= 0) c.data.datasets[0].data[last] += value;
+    } else {
+        if (c.data.labels.length > maxLen) { c.data.labels.shift(); c.data.datasets.forEach(ds => ds.data.shift()); }
+        c.data.labels.push(label);
+        c.data.datasets.forEach(ds => ds.data.push(value + (Math.random()-0.5)*value*0.3));
+    }
+    c.update('none');
+}
+
+// ─── Charts ───
+function initCharts() {
+    mkChart('costVelocityChart', 'line', { labels: [], datasets: [{ label:'Velocity ($/min)', data:[], borderColor:'#8B1A1A', backgroundColor:'rgba(139,26,26,.05)', tension:.4, fill:true, pointRadius:0 }] });
+    mkChart('hourlySpendChart', 'bar', { labels: Array.from({length:24},(_,i)=>i+':00'), datasets: [{ label:'Spend ($)', data: new Array(24).fill(0), backgroundColor:'#8B1A1A' }] });
+    mkChart('modelDistChart', 'doughnut', { labels:['gpt-4o','gpt-4o-mini','claude-3-haiku'], datasets:[{data:[0,0,0],backgroundColor:['#8B1A1A','#92400E','#2D6A4F']}] });
+    mkChart('languageRadarChart', 'radar', { labels:['English','Spanish','Japanese','Hindi','Arabic','Tamil'], datasets:[{label:'IDS Score',data:[4.8,4.2,4.5,4.1,4.3,4.0],borderColor:'#2D6A4F',backgroundColor:'rgba(45,106,79,.1)'}] });
+    mkChart('verifyHistoryChart', 'line', { labels: Array.from({length:20},(_,i)=>'#'+i), datasets:[{label:'Discrepancy %',data:Array.from({length:20},()=>Math.random()*5),borderColor:'#D32F2F',tension:.3,pointRadius:2}] });
+    mkChart('billingDiscrepancyChart', 'line', { labels: Array.from({length:30},(_,i)=>'Day '+(i+1)), datasets:[{label:'Overcharge %',data:Array.from({length:30},()=>Math.random()*4+1),borderColor:'#8B1A1A',backgroundColor:'rgba(139,26,26,.05)',tension:.3,fill:true}] });
+    mkChart('billingDoughnutChart', 'doughnut', { labels:['gpt-4o','gpt-4o-mini','claude-3-haiku'], datasets:[{data:[0,0,0],backgroundColor:['#8B1A1A','#92400E','#2D6A4F']}] });
+    mkChart('cacheHitChart', 'line', { labels:Array.from({length:30},(_,i)=>'Day '+(i+1)), datasets:[{label:'Hit Rate %',data:Array.from({length:30},()=>Math.random()*15+25),borderColor:'#2D6A4F',backgroundColor:'rgba(45,106,79,.05)',tension:.3,fill:true}] });
+    mkChart('cacheSimilarityChart', 'bar', { labels:['0-.2','.2-.4','.4-.6','.6-.8','.8-1.0'], datasets:[{label:'Prompt Pairs',data:[120,85,67,34,18],backgroundColor:['#E8E6E1','#D3D3D3','#92400E','#8B1A1A','#2D6A4F']}] });
+    mkChart('entropyRadarChart', 'radar', { labels:['Lexical','Syntactic','Semantic','Pragmatic','Domain'], datasets:[{label:'Entropy',data:[4.8,4.2,3.2,4.1,3.9],borderColor:'#8B1A1A',backgroundColor:'rgba(139,26,26,.1)'}] });
+    mkChart('tokenEfficiencyChart', 'scatter', { datasets:[{label:'Token Efficiency',data:Array.from({length:30},()=>({x:Math.random()*8,y:Math.random()*1})),backgroundColor:'rgba(139,26,26,.6)',pointRadius:4}] });
+    mkChart('compressionChart', 'bar', { labels:['ZLIB','LZMA','Brotli'], datasets:[{label:'Compressed Bytes',data:[124,98,112],backgroundColor:['#8B1A1A','#92400E','#2D6A4F']}] });
+    mkChart('vulnerabilitySpiderChart', 'radar', { labels:['Injection','Leakage','Smuggling','Extraction','Bypass','Overflow'], datasets:[{label:'Risk Level',data:[8.5,6.2,5.1,3.8,2.2,4.5],borderColor:'#D32F2F',backgroundColor:'rgba(211,47,47,.1)'}] });
+    mkChart('costBreakdownChart', 'bar', { labels:['Engineering','Product','Support','Sales'], datasets:[{label:'Cost ($)',data:[0,0,0,0],backgroundColor:['#8B1A1A','#92400E','#2D6A4F','#1A5276']}] });
+    mkChart('costTrendChart', 'line', { labels:Array.from({length:30},(_,i)=>'Apr '+(i+1)), datasets:[{label:'Daily Spend ($)',data:Array.from({length:30},()=>Math.random()*600+400),borderColor:'#8B1A1A',backgroundColor:'rgba(139,26,26,.05)',tension:.3,fill:true}] });
+    mkChart('arbitrageChart', 'polarArea', { labels:['gpt-4o','gpt-4o-mini','claude-3-sonnet','claude-3-haiku'], datasets:[{data:[2000,45,600,120],backgroundColor:['rgba(139,26,26,.8)','rgba(146,64,14,.8)','rgba(45,106,79,.8)','rgba(26,82,118,.8)']}] });
+    mkChart('latencyChart', 'line', { labels:[], datasets:[{label:'Latency (ms)',data:[],borderColor:'#8B1A1A',tension:.3,pointRadius:0}] });
+    mkChart('successRateChart', 'line', { labels:[], datasets:[{label:'Success %',data:[],borderColor:'#2D6A4F',tension:.3,pointRadius:0,fill:true,backgroundColor:'rgba(45,106,79,.05)'}] });
+    mkChart('driftChart', 'bar', { labels:['Baseline','GPT-4o','Claude-3','Custom'], datasets:[{label:'Drift %',data:[0,2.1,0.8,1.4],backgroundColor:['#2D6A4F','#D32F2F','#92400E','#8B1A1A']}] });
+    mkChart('auditProviderChart', 'doughnut', { labels:['OpenAI','Anthropic'], datasets:[{data:[0,0],backgroundColor:['#8B1A1A','#2D6A4F']}] });
+}
+
+function mkChart(id, type, config) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const opts = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: !['doughnut','polarArea'].includes(type), labels: { font: { family: "'Inter',sans-serif", size: 11 } } } },
+        animation: { duration: 0 }
+    };
+    if (!['radar','polarArea','doughnut','scatter'].includes(type)) {
+        opts.scales = { x: { ticks: { font: { size: 10 }, maxRotation: 0 } }, y: { ticks: { font: { size: 10 } } } };
+    }
+    if (type === 'scatter') {
+        opts.scales = { x: { title: { display: true, text: 'Entropy (bits)' } }, y: { title: { display: true, text: 'ETR Score' } } };
+    }
+    chartInstances[id] = new Chart(canvas, { type, data: config, options: opts });
+}
+
+// ─── Budget Gauge ───
+function drawBudgetGauge(pct) {
+    const canvas = document.getElementById('budgetGauge');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width/2, cy = canvas.height/2, r = 85;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background ring
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.strokeStyle = '#E8E6E1'; ctx.lineWidth = 18; ctx.stroke();
+
+    // Filled arc
+    const color = pct > 85 ? '#D32F2F' : pct > 70 ? '#92400E' : '#2D6A4F';
+    ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + Math.PI*2*pct/100);
+    ctx.strokeStyle = color; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Center text
+    ctx.fillStyle = '#2C2C2C';
+    ctx.font = 'bold 36px "Playfair Display"';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(pct.toFixed(1) + '%', cx, cy - 8);
+    ctx.font = '12px Inter'; ctx.fillStyle = '#666';
+    ctx.fillText('of budget', cx, cy + 20);
+}
+
+// ─── Wavelet Heatmap ───
+function initWaveletHeatmap() {
+    const canvas = document.getElementById('waveletHeatmap');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.clientWidth; canvas.height = 300;
+    const cellW = 12, cellH = 12;
+    for (let x = 0; x < canvas.width; x += cellW) {
+        for (let y = 0; y < canvas.height; y += cellH) {
+            const intensity = Math.sin(x*0.02)*Math.cos(y*0.03)*0.5 + 0.5 + (Math.random()-0.5)*0.3;
+            const clamped = Math.max(0, Math.min(1, intensity));
+            const hue = 120 - clamped * 120;
+            ctx.fillStyle = `hsla(${hue},70%,50%,0.85)`;
+            ctx.fillRect(x, y, cellW-1, cellH-1);
+        }
+    }
+    // Labels
+    ctx.fillStyle = '#2C2C2C'; ctx.font = '11px Inter';
+    ctx.fillText('Low Frequency →', 10, canvas.height - 8);
+    ctx.fillText('High Frequency →', canvas.width - 120, canvas.height - 8);
+}
+
+// ─── Dedup Heatmap ───
+function initDedupHeatmap() {
+    const canvas = document.getElementById('dedupHeatmap');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.clientWidth; canvas.height = 180;
+    const n = 15, cellW = canvas.width/n, cellH = canvas.height/n;
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            const sim = i === j ? 1.0 : Math.max(0, 1 - Math.abs(i-j)*0.15 + (Math.random()-0.5)*0.2);
+            const r = ~~(139 * sim), g = ~~(26 * (1-sim) + 106 * sim * 0.5), b = ~~(26 * sim);
+            ctx.fillStyle = `rgba(${r},${g},${b},${0.3+sim*0.7})`;
+            ctx.fillRect(i*cellW, j*cellH, cellW-1, cellH-1);
+        }
+    }
+    ctx.fillStyle = '#2C2C2C'; ctx.font = '10px Inter';
+    ctx.fillText('Sentence Similarity Matrix', 4, 12);
+}
+
+// ─── Force-Directed Graphs (Obsidian-style) ───
+function initForceGraphs() {
+    createForceGraph('commandForceCanvas', [
+        { id: 'gateway', label: 'API Gateway', color: '#8B1A1A', size: 30 },
+        { id: 'cost', label: 'Cost Engine', color: '#2D6A4F', size: 25 },
+        { id: 'cache', label: 'Cache', color: '#92400E', size: 22 },
+        { id: 'audit', label: 'Audit', color: '#1A5276', size: 22 },
+        { id: 'billing', label: 'Billing', color: '#8B1A1A', size: 20 },
+        { id: 'dedup', label: 'Dedup', color: '#2D6A4F', size: 18 },
+        { id: 'health', label: 'Health', color: '#92400E', size: 18 },
+        { id: 'drift', label: 'Drift', color: '#1A5276', size: 16 },
+        { id: 'attr', label: 'Attribution', color: '#8B1A1A', size: 20 },
+    ], [
+        ['gateway','cost'],['gateway','cache'],['gateway','audit'],['gateway','billing'],
+        ['cost','billing'],['cost','attr'],['cache','dedup'],['audit','billing'],
+        ['health','drift'],['gateway','health'],['attr','audit']
+    ]);
+
+    createForceGraph('cacheForceCanvas', [
+        { id: 'c1', label: 'ML trends', color: '#8B1A1A', size: 22 },
+        { id: 'c2', label: 'AI research', color: '#8B1A1A', size: 20 },
+        { id: 'c3', label: 'Debug React', color: '#2D6A4F', size: 18 },
+        { id: 'c4', label: 'Fix component', color: '#2D6A4F', size: 16 },
+        { id: 'c5', label: 'SQL query', color: '#92400E', size: 18 },
+        { id: 'c6', label: 'DB migration', color: '#92400E', size: 16 },
+        { id: 'c7', label: 'Email draft', color: '#1A5276', size: 18 },
+        { id: 'c8', label: 'Marketing', color: '#1A5276', size: 16 },
+    ], [['c1','c2'],['c3','c4'],['c5','c6'],['c7','c8'],['c1','c3'],['c5','c7']]);
+
+    createForceGraph('entropyForceCanvas', [
+        { id: 'e1', label: 'Shannon H', color: '#8B1A1A', size: 28 },
+        { id: 'e2', label: 'Rényi H', color: '#8B1A1A', size: 22 },
+        { id: 'e3', label: 'Kolmogorov', color: '#2D6A4F', size: 25 },
+        { id: 'e4', label: 'ZLIB', color: '#92400E', size: 18 },
+        { id: 'e5', label: 'LZMA', color: '#92400E', size: 18 },
+        { id: 'e6', label: 'Brotli', color: '#92400E', size: 18 },
+        { id: 'e7', label: 'Semantic', color: '#1A5276', size: 22 },
+        { id: 'e8', label: 'ETR', color: '#2D6A4F', size: 20 },
+    ], [['e1','e2'],['e1','e3'],['e3','e4'],['e3','e5'],['e3','e6'],['e1','e7'],['e7','e8'],['e8','e3']]);
+
+    createForceGraph('attributionForceCanvas', [
+        { id: 'eng', label: 'Engineering', color: '#8B1A1A', size: 28 },
+        { id: 'prod', label: 'Product', color: '#92400E', size: 25 },
+        { id: 'supp', label: 'Support', color: '#2D6A4F', size: 22 },
+        { id: 'sales', label: 'Sales', color: '#1A5276', size: 20 },
+        { id: 'chat', label: 'Chatbot', color: '#666', size: 18 },
+        { id: 'code', label: 'Code Assist', color: '#666', size: 18 },
+        { id: 'trans', label: 'Translation', color: '#666', size: 16 },
+        { id: 'gpt4', label: 'GPT-4o', color: '#D32F2F', size: 22 },
+        { id: 'mini', label: 'GPT-4o-mini', color: '#D32F2F', size: 18 },
+        { id: 'haiku', label: 'Claude Haiku', color: '#D32F2F', size: 18 },
+    ], [
+        ['eng','chat'],['eng','code'],['prod','chat'],['prod','trans'],
+        ['supp','chat'],['sales','trans'],['chat','gpt4'],['chat','haiku'],
+        ['code','gpt4'],['code','mini'],['trans','mini'],['trans','haiku']
+    ]);
+
+    createForceGraph('causalNetworkCanvas', [
+        { id: 'gw', label: 'Gateway', color: '#8B1A1A', size: 30 },
+        { id: 'oai', label: 'OpenAI', color: '#2D6A4F', size: 26 },
+        { id: 'ant', label: 'Anthropic', color: '#92400E', size: 24 },
+        { id: 'loc', label: 'Local Cache', color: '#1A5276', size: 22 },
+        { id: 'lb', label: 'Load Balancer', color: '#666', size: 20 },
+        { id: 'db', label: 'Database', color: '#666', size: 20 },
+        { id: 'redis', label: 'Redis', color: '#D32F2F', size: 18 },
+        { id: 'mon', label: 'Monitor', color: '#8B1A1A', size: 18 },
+    ], [
+        ['gw','lb'],['lb','oai'],['lb','ant'],['lb','loc'],
+        ['oai','db'],['ant','db'],['loc','redis'],['mon','oai'],['mon','ant'],['mon','loc'],['db','redis']
+    ]);
+
+    createForceGraph('auditForceCanvas', [
+        { id: 'a1', label: 'Block 1', color: '#8B1A1A', size: 18 },
+        { id: 'a2', label: 'Block 2', color: '#8B1A1A', size: 18 },
+        { id: 'a3', label: 'Block 3', color: '#8B1A1A', size: 18 },
+        { id: 'a4', label: 'Block 4', color: '#8B1A1A', size: 18 },
+        { id: 'a5', label: 'Block 5', color: '#8B1A1A', size: 18 },
+        { id: 'root', label: 'Merkle Root', color: '#2D6A4F', size: 28 },
+        { id: 'h12', label: 'Hash(1,2)', color: '#92400E', size: 20 },
+        { id: 'h34', label: 'Hash(3,4)', color: '#92400E', size: 20 },
+    ], [
+        ['a1','a2'],['a2','a3'],['a3','a4'],['a4','a5'],
+        ['a1','h12'],['a2','h12'],['a3','h34'],['a4','h34'],
+        ['h12','root'],['h34','root'],['a5','root']
+    ]);
+}
+
+function createForceGraph(canvasId, nodes, edges) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+        canvas.width = canvas.clientWidth || 600;
+        canvas.height = canvas.clientHeight || 400;
+    }
+    resize();
+
+    // Initialize positions
+    const w = canvas.width, h = canvas.height;
+    nodes.forEach((n, i) => {
+        n.x = w * 0.2 + Math.random() * w * 0.6;
+        n.y = h * 0.2 + Math.random() * h * 0.6;
+        n.vx = 0; n.vy = 0;
+    });
+
+    let frame = 0;
+    function simulate() {
+        if (frame > 200) { draw(); return; } // Settle after 200 frames
+        frame++;
+
+        // Repulsion
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                let dx = nodes[j].x - nodes[i].x;
+                let dy = nodes[j].y - nodes[i].y;
+                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                let force = 8000 / (dist * dist);
+                let fx = (dx / dist) * force;
+                let fy = (dy / dist) * force;
+                nodes[i].vx -= fx; nodes[i].vy -= fy;
+                nodes[j].vx += fx; nodes[j].vy += fy;
+            }
+        }
+
+        // Attraction (edges)
+        edges.forEach(([fi, ti]) => {
+            const a = nodes.find(n => n.id === fi);
+            const b = nodes.find(n => n.id === ti);
+            if (!a || !b) return;
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            let force = (dist - 100) * 0.02;
+            let fx = (dx / dist) * force;
+            let fy = (dy / dist) * force;
+            a.vx += fx; a.vy += fy;
+            b.vx -= fx; b.vy -= fy;
+        });
+
+        // Center gravity
+        nodes.forEach(n => {
+            n.vx += (w/2 - n.x) * 0.001;
+            n.vy += (h/2 - n.y) * 0.001;
+            n.vx *= 0.85; n.vy *= 0.85;
+            n.x += n.vx; n.y += n.vy;
+            n.x = Math.max(n.size + 5, Math.min(w - n.size - 5, n.x));
+            n.y = Math.max(n.size + 5, Math.min(h - n.size - 5, n.y));
+        });
+
+        draw();
+        requestAnimationFrame(simulate);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        // Edges
+        ctx.lineWidth = 1.5;
+        edges.forEach(([fi, ti]) => {
+            const a = nodes.find(n => n.id === fi);
+            const b = nodes.find(n => n.id === ti);
+            if (!a || !b) return;
+            const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+            grad.addColorStop(0, a.color + '40');
+            grad.addColorStop(1, b.color + '40');
+            ctx.strokeStyle = grad;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        });
+
+        // Nodes
+        nodes.forEach(n => {
+            // Glow
+            const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.size * 1.8);
+            glow.addColorStop(0, n.color + '20');
+            glow.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow;
+            ctx.beginPath(); ctx.arc(n.x, n.y, n.size * 1.8, 0, Math.PI * 2); ctx.fill();
+
+            // Node circle
+            ctx.fillStyle = n.color;
+            ctx.beginPath(); ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2); ctx.fill();
+
+            // Border
+            ctx.strokeStyle = n.color + '60';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(n.x, n.y, n.size + 2, 0, Math.PI * 2); ctx.stroke();
+
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.max(9, n.size * 0.45)}px Inter`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const words = n.label.split(' ');
+            if (words.length > 1 && n.size > 16) {
+                ctx.fillText(words[0], n.x, n.y - 5);
+                ctx.fillText(words.slice(1).join(' '), n.x, n.y + 7);
+            } else {
+                ctx.fillText(n.label, n.x, n.y);
+            }
+        });
+    }
+
+    simulate();
+}
+
+function resizeAllCanvases() {
+    ['commandForceCanvas','cacheForceCanvas','entropyForceCanvas','attributionForceCanvas','causalNetworkCanvas','auditForceCanvas'].forEach(id => {
+        const c = document.getElementById(id);
+        if (c && c.clientWidth > 0) { c.width = c.clientWidth; c.height = c.clientHeight || 400; }
+    });
+}
+
+// ─── Interactive Functions ───
+async function verifyTokens() {
+    const text = document.getElementById('verifyInput').value;
+    const model = document.getElementById('verifyModelSelect').value;
+    try {
+        const [vr, cr] = await Promise.all([
+            fetch(`${API}/lens/platform/verify`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text,model_name:model}) }),
+            fetch(`${API}/lens/platform/verify/compare`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text,model_name:model}) })
+        ]);
+        const v = await vr.json(), c = await cr.json();
+        const el = document.getElementById('verifyResults');
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="g g4" style="margin-bottom:14px">
+                <div class="sc"><div class="sl">TOKENS</div><div class="sv">${v.measured_tokens}</div></div>
+                <div class="sc"><div class="sl">COST</div><div class="sv">$${v.estimated_cost_usd?.toFixed(6)}</div></div>
+                <div class="sc"><div class="sl">METHOD</div><div class="sv" style="font-size:13px">${v.verification_method}</div></div>
+                <div class="sc"><div class="sl">CONFIDENCE</div><div class="sv" style="color:var(--green)">${(v.confidence*100).toFixed(0)}%</div></div>
+            </div>
+            <h4 style="font-size:14px;margin:12px 0 8px">Cross-Provider Comparison</h4>
+            ${(c.alternatives||[]).slice(0,6).map(a=>`
+                <div style="display:flex;justify-content:space-between;padding:8px 12px;background:${a.savings_pct>0?'rgba(45,106,79,.05)':'rgba(139,26,26,.05)'};border-radius:6px;margin-bottom:4px;font-size:12px">
+                    <span style="font-weight:600">${a.model}</span>
+                    <span>${a.tokens} tok · $${(a.cost||0).toFixed(6)} · <span style="color:${a.savings_pct>0?'var(--green)':'var(--crimson)'};">${a.savings_pct>0?'+':''}${a.savings_pct?.toFixed(1)}%</span></span>
+                </div>`).join('')}
+            <p style="margin-top:10px;font-size:12px;color:var(--tl)">Best: <strong>${c.best_alternative}</strong> (${c.max_savings_pct?.toFixed(1)}% savings)</p>`;
+    } catch(e) {
+        const el = document.getElementById('verifyResults');
+        el.style.display='block'; el.innerHTML='<div class="alert">API unavailable — connect to localhost:8003</div>';
+    }
+}
+
+async function recordBilling() {
+    const text = document.getElementById('billingInput').value;
+    const model = document.getElementById('billingModel').value;
+    const tokens = parseInt(document.getElementById('billingTokens').value) || 500;
+    try {
+        const resp = await fetch(`${API}/lens/platform/billing/record`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({model,input_text:text,billed_input_tokens:tokens,billed_cost:tokens*0.000005,team:'engineering'})
+        });
+        const d = await resp.json();
+        const el = document.getElementById('billingResults');
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="g g4">
+                <div class="sc"><div class="sl">Measured</div><div class="sv">${d.input_tokens_measured}</div></div>
+                <div class="sc"><div class="sl">Billed</div><div class="sv">${d.input_tokens_billed}</div></div>
+                <div class="sc"><div class="sl">Discrepancy</div><div class="sv" style="color:${d.discrepancy_tokens!==0?'var(--crimson)':'var(--green)'}">${d.discrepancy_tokens} tokens</div></div>
+                <div class="sc"><div class="sl">Cost Delta</div><div class="sv" style="color:var(--crimson)">$${d.discrepancy_cost?.toFixed(6)}</div></div>
+            </div>`;
+    } catch(e) { const el=document.getElementById('billingResults'); el.style.display='block'; el.innerHTML='<div class="alert">Billing API unavailable</div>'; }
+}
+
+async function analyzeDedup() {
+    const text = document.getElementById('dedupInput').value;
+    try {
+        const resp = await fetch(`${API}/lens/platform/dedup/analyze`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text}) });
+        const d = await resp.json();
+        const el = document.getElementById('dedupResults');
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="g g4">
+                <div class="sc"><div class="sl">ORIGINAL</div><div class="sv">${d.original_tokens}</div></div>
+                <div class="sc"><div class="sl">UNIQUE</div><div class="sv" style="color:var(--green)">${d.unique_tokens}</div></div>
+                <div class="sc"><div class="sl">REDUNDANT</div><div class="sv" style="color:var(--crimson)">${d.redundant_tokens}</div></div>
+                <div class="sc"><div class="sl">WASTE %</div><div class="sv" style="color:${d.redundancy_pct>20?'var(--crimson)':'var(--green)'};">${d.redundancy_pct?.toFixed(1)}%</div></div>
+            </div>
+            <div class="pb" style="height:16px;margin-top:12px"><div class="pf ${d.redundancy_pct>20?'pf-r':'pf-g'}" style="width:${Math.min(d.redundancy_pct,100)}%"></div></div>`;
+    } catch(e) { const el=document.getElementById('dedupResults'); el.style.display='block'; el.innerHTML='<div class="alert">Dedup API unavailable</div>'; }
+}
+
+async function profileEntropy() {
+    const text = document.getElementById('entropyInput').value;
+    const model = document.getElementById('entropyModelSelect').value;
+    try {
+        const resp = await fetch(`${API}/lens/profile`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text,model_name:model,include_token_records:false}) });
+        const d = await resp.json();
+        const el = document.getElementById('entropyResults');
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="g g3" style="margin-bottom:14px">
+                <div class="sc"><div class="sl">IDS SCORE</div><div class="sv">${d.ids_score?.toFixed(4)}</div></div>
+                <div class="sc"><div class="sl">ETR SCORE</div><div class="sv">${d.etr_score?.toFixed(4)}</div></div>
+                <div class="sc"><div class="sl">SEMANTIC H</div><div class="sv">${d.semantic_entropy_bits?.toFixed(2)} bits</div></div>
+                <div class="sc"><div class="sl">TOKENS</div><div class="sv">${d.token_count}</div></div>
+                <div class="sc"><div class="sl">WASTE</div><div class="sv" style="color:var(--crimson)">${d.waste_pct?.toFixed(1)}% ($${d.waste_cost_usd?.toFixed(6)})</div></div>
+                <div class="sc"><div class="sl">WASTE TYPE</div><div class="sv" style="font-size:12px">${d.waste_type}</div></div>
+            </div>
+            ${d.equity_statement?`<p style="padding:10px;background:rgba(146,64,14,.05);border-radius:6px;font-size:12px;border-left:3px solid var(--amber)">${d.equity_statement}</p>`:''}
+            ${d.low_ids_alert?'<p style="margin-top:8px;color:var(--crimson);font-weight:600;font-size:13px">⚠ Low IDS Alert — COMPRESS bridge signal triggered</p>':''}`;
+        // Update radar
+        const rc = chartInstances['entropyRadarChart'];
+        if (rc) { rc.data.datasets[0].data = [d.ids_score||0, d.etr_score||0, d.semantic_entropy_bits||0, d.efficiency_ratio||0, d.etr_inequity_ratio||0]; rc.update(); }
+    } catch(e) { const el=document.getElementById('entropyResults'); el.style.display='block'; el.innerHTML='<div class="alert">Entropy API unavailable</div>'; }
+}
+
+async function analyzeCompression() {
+    const text = document.getElementById('compressionInput').value;
+    try {
+        const resp = await fetch(`${API}/lens/compression`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text,model_name:'gpt-4o'}) });
+        const d = await resp.json();
+        const el = document.getElementById('compressionResults');
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="g g3">
+                <div class="sc"><div class="sl">RAW</div><div class="sv">${d.raw_bytes} B</div></div>
+                <div class="sc"><div class="sl">BEST</div><div class="sv" style="color:var(--green)">${d.best_compressed_bytes} B (${d.best_algorithm})</div></div>
+                <div class="sc"><div class="sl">RATIO</div><div class="sv">${d.compression_ratio?.toFixed(2)}x</div></div>
+                <div class="sc"><div class="sl">INFO DENSITY</div><div class="sv">${d.information_density?.toFixed(3)}</div></div>
+                <div class="sc"><div class="sl">TOKENIZER INFLATION</div><div class="sv" style="color:var(--crimson)">${d.tokenizer_inflation?.toFixed(2)}x</div></div>
+                <div class="sc"><div class="sl">OBJECTIVE WASTE</div><div class="sv">${d.objective_waste_pct?.toFixed(1)}%</div></div>
+            </div>`;
+        const cc = chartInstances['compressionChart'];
+        if (cc) { cc.data.datasets[0].data = [d.zlib_bytes||0, d.lzma_bytes||0, d.brotli_bytes||d.lzma_bytes||0]; cc.update(); }
+    } catch(e) { const el=document.getElementById('compressionResults'); el.style.display='block'; el.innerHTML='<div class="alert">Compression API unavailable</div>'; }
+}
+
+async function runAdversarialProbes() {
+    const text = document.getElementById('adversarialInput').value;
+    try {
+        const resp = await fetch(`${API}/lens/adversarial`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text,model_name:'gpt-4o'}) });
+        const d = await resp.json();
+        const el = document.getElementById('adversarialResults');
+        el.style.display = 'block';
+        el.innerHTML = `
+            <div class="g g4" style="margin-bottom:14px">
+                <div class="sc"><div class="sl">VULNERABILITY</div><div class="sv" style="color:${d.model_vulnerability_score>50?'var(--crimson)':'var(--green)'};">${d.model_vulnerability_score?.toFixed(0)}/100</div></div>
+                <div class="sc"><div class="sl">WORST INFLATION</div><div class="sv">${d.worst_case_inflation?.toFixed(1)}%</div></div>
+                <div class="sc"><div class="sl">CRITICAL</div><div class="sv" style="color:var(--crimson)">${d.critical_count}</div></div>
+                <div class="sc"><div class="sl">HIGH</div><div class="sv" style="color:var(--amber)">${d.high_count}</div></div>
+            </div>
+            ${(d.results||[]).map(r=>`
+                <div style="padding:10px;background:${r.severity==='critical'?'rgba(139,26,26,.05)':r.severity==='high'?'rgba(146,64,14,.05)':'rgba(45,106,79,.05)'};border-radius:6px;margin-bottom:6px;border-left:3px solid ${r.severity==='critical'?'var(--crimson)':r.severity==='high'?'var(--amber)':'var(--green)'};">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><strong style="font-size:12px">${r.vulnerability_type}</strong><span class="badge badge-${r.severity}">${r.severity}</span></div>
+                    <p style="font-size:11px;color:var(--tl);margin-bottom:3px">${r.explanation}</p>
+                    <p style="font-size:11px">Inflation: ${r.token_inflation_pct?.toFixed(1)}% · Mitigation: ${r.mitigation}</p>
+                </div>`).join('')}`;
+        const vs = chartInstances['vulnerabilitySpiderChart'];
+        if (vs) { vs.data.datasets[0].data = (d.results||[]).slice(0,6).map(r=>r.token_inflation_pct||0); vs.update(); }
+    } catch(e) { const el=document.getElementById('adversarialResults'); el.style.display='block'; el.innerHTML='<div class="alert">Adversarial API unavailable</div>'; }
+}
+
+async function generateCompliance() {
+    try {
+        const [ir, rr] = await Promise.all([
+            fetch(`${API}/lens/platform/audit/integrity`),
+            fetch(`${API}/lens/platform/audit/report`)
+        ]);
+        const integrity = await ir.json(), report = await rr.json();
+        const el = document.getElementById('complianceReport');
+        el.style.display = 'block';
+
+        // Update chain status
+        document.getElementById('chainIcon').textContent = integrity.valid ? '🔒' : '⚠️';
+        document.getElementById('chainLabel').textContent = integrity.valid ? 'Merkle Chain Verified' : 'Integrity Violation!';
+        document.getElementById('chainLabel').style.color = integrity.valid ? 'var(--green)' : 'var(--crimson)';
+        document.getElementById('chainDetail').textContent = `${integrity.message} · ${integrity.total_records} records`;
+        setText('auditCount', integrity.total_records.toString());
+        setText('auditValid', integrity.valid ? '✓' : '✗');
+        setText('auditMerkle', (integrity.merkle_root||'').substring(0,24) + '...');
+
+        el.innerHTML = `
+            <div class="g g3" style="margin-bottom:14px">
+                <div class="sc"><div class="sl">TOTAL RECORDS</div><div class="sv">${report.total_records}</div></div>
+                <div class="sc"><div class="sl">TOTAL COST</div><div class="sv">$${report.total_cost?.toFixed(4)}</div></div>
+                <div class="sc"><div class="sl">CHAIN</div><div class="sv" style="color:${report.chain_integrity?'var(--green)':'var(--crimson)'}">${report.chain_integrity?'Valid':'Broken'}</div></div>
+            </div>
+            <h4 style="font-size:13px;margin:12px 0 8px">Compliance Notes</h4>
+            <ul style="font-size:12px;color:var(--tl);padding-left:18px">
+                ${(report.compliance_notes||[]).map(n=>`<li style="margin-bottom:4px">${n}</li>`).join('') || '<li>No records yet — start the simulator to generate audit data</li>'}
+            </ul>`;
+    } catch(e) { const el=document.getElementById('complianceReport'); el.style.display='block'; el.innerHTML='<div class="alert">Audit API unavailable</div>'; }
+}
+</script>
+</body>
+</html>

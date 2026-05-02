@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  compress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "9101:9101"
+    environment:
+      COMPRESS_REDIS_HOST: redis
+      COMPRESS_REDIS_PORT: 6379
+      COMPRESS_API_HOST: "0.0.0.0"
+      COMPRESS_API_PORT: 8000
+      COMPRESS_METRICS_PORT: 9101
+      COMPRESS_DEVICE: "cpu"
+      COMPRESS_BEAM_WIDTH: 12
+      COMPRESS_MAX_CANDIDATES: 8
+    volumes:
+      - model-cache:/app/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  model-cache:
+  redis-data:

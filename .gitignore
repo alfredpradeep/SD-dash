@@ -1,0 +1,22 @@
+# Local-only / generated
+.DS_Store
+.env
+.env.*
+.models/
+.venv/
+**/.venv/
+.pytest_cache/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.zip
+*.tar
+*.gz
+*.tgz
+*.rar
+*.7z
+*.pdf
+*.docx
+*.egg-info/
+*.log

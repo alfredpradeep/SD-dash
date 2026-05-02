@@ -1,0 +1,47 @@
+# LENS — Docker Compose (standalone or with Redis + ClickHouse)
+# Usage:
+#   docker compose up --build          # Full stack
+#   docker compose up --build lens     # LENS only (dry-run storage)
+
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "8123:8123"   # HTTP
+      - "9000:9000"   # Native
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  lens:
+    build: .
+    ports: ["8003:8003"]
+    env_file: .env
+    environment:
+      - LENS_REDIS_HOST=redis
+      - LENS_CLICKHOUSE_HOST=clickhouse
+      - LENS_DEVICE=cpu
+    depends_on:
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  clickhouse_data:
