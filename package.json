@@ -1,0 +1,14 @@
+{
+  "name": "compress-v4-dashboard",
+  "version": "4.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pip install --break-system-packages --user fastapi uvicorn pydantic pydantic-settings tiktoken loguru prometheus-client httpx > /dev/null 2>&1; vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vite": "^8.0.10"
+  }
+}
